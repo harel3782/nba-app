@@ -8,7 +8,7 @@
   
   A modern, interactive Progressive Web App (PWA) built for NBA fans.
 
-  [Live Demo](https://nba-app-five.vercel.app) • [Report Bug](https://github.com/harel-mashiah/nba-predictor/issues)
+  [Live Demo](https://nba-app-five.vercel.app)
 
   <br />
 
