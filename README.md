@@ -117,9 +117,4 @@ Contributions are what make the open-source community such an amazing place to l
 ## 👤 Author
 
 **Harel Mashiah**
-* Project Link: [https://github.com/your-username/nba-predictor](https://github.com/your-username/nba-predictor)
-
-<p align="center">
-  <br>
-  <i>Built with ❤️ for basketball fans.</i>
-</p>
+* Project Link: [https://github.com/your-username/nba-predictor](https://github.com/harel3782/nba-app)
