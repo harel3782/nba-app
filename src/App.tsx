@@ -10,6 +10,8 @@ import { AdminResultsControl } from './AdminResultsControl';
 import { AdminStandingsMonitor } from './AdminStandingsMonitor';
 import { LeaderboardTable } from './LeaderboardTable';
 import type { Session } from '@supabase/supabase-js';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';  
 
 // --- Super Admin Configuration ---
 const SUPER_ADMIN_EMAIL = "harel.mashiah@gmail.com"; 
@@ -45,6 +47,20 @@ function App() {
 
 	// Auth Effect
 	useEffect(() => {
+
+    if (Capacitor.isNativePlatform()) {
+        const setStatusBarStyle = async () => {
+            try {
+                // צובע את הסטטוס בר בכחול NBA
+                await StatusBar.setBackgroundColor({ color: '#1D428A' });
+                // הופך את הטקסט (שעון/סוללה) לבהיר
+                await StatusBar.setStyle({ style: Style.Dark }); 
+            } catch (e) {
+                console.log('StatusBar not implemented on web');
+            }
+        };
+        setStatusBarStyle();
+    }
 		supabase.auth.getSession().then(({ data: { session } }) => {
 			setSession(session);
 			if (session) updateLocalName(session);
