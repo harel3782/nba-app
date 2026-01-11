@@ -39,8 +39,9 @@ function App() {
 	const [copySuccess, setCopySuccess] = useState(false);
 
 	// --- Refresh Trigger State ---
-	// This counter updates whenever a save occurs, forcing the leaderboard to re-fetch
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
+	// New state to show global saving indicator (optional)
+	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
 
 	// Auth Effect
 	useEffect(() => {
@@ -96,9 +97,15 @@ function App() {
 		}
 	}
 
-	// Callback function to handle successful saves from child components
+	// --- FIX: Added Delay ---
 	const handleSaveSuccess = () => {
-		setRefreshTrigger(prev => prev + 1);
+		setIsUpdatingScores(true); // Show some visual feedback if you want
+		
+		// Wait 1 second (1000ms) for the DB Trigger to finish calculating
+		setTimeout(() => {
+			setRefreshTrigger(prev => prev + 1);
+			setIsUpdatingScores(false);
+		}, 1000); 
 	};
 
 	const copyToClipboard = () => {
@@ -125,7 +132,6 @@ function App() {
 	}
 
 	const isLeagueAdmin = session.user.id === leagueDetails?.created_by;
-	// Case-insensitive check for admin email
 	const isSuperAdmin = session.user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 	const locked = isLeagueLocked();
 
@@ -159,7 +165,6 @@ function App() {
 			<header className="border-b border-white/10 bg-[#1D428A]/90 backdrop-blur-md sticky top-0 z-50 shadow-lg">
 				<div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 					
-					{/* Left: Logo */}
 					<div className="flex items-center gap-3">
 						<img src="https://cdn.nba.com/logos/leagues/logo-nba.svg" alt="NBA" className="h-10 w-auto drop-shadow-md"/>
 						<h1 className="text-xl font-black tracking-tighter uppercase italic text-white hidden sm:block">
@@ -167,10 +172,8 @@ function App() {
 						</h1>
 					</div>
 
-					{/* Right: Actions */}
 					<div className="flex items-center gap-4">
 						
-						{/* Admin Mode Button - Visible only to Super Admin */}
 						{isSuperAdmin && (
 							<button
 								onClick={() => setShowAdminPanel(!showAdminPanel)}
@@ -185,7 +188,6 @@ function App() {
 							</button>
 						)}
 
-						{/* Profile Area */}
 						<button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-3 group hover:bg-white/5 p-1 rounded-full pr-3 transition-all border border-transparent hover:border-white/10">
 							<div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center font-bold shadow-lg border border-white/10">
 								{displayName.charAt(0).toUpperCase()}
@@ -195,7 +197,6 @@ function App() {
 							</span>
 						</button>
 						
-						{/* Logout Button */}
 						<button 
 								onClick={() => supabase.auth.signOut()} 
 								className="bg-white/10 hover:bg-red-600/80 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all ml-2"
@@ -208,7 +209,13 @@ function App() {
 
 			<main className="max-w-7xl mx-auto p-4 md:p-8 flex flex-col items-center">
 
-				{/* --- ADMIN PANEL --- */}
+				{/* Global Updating Indicator */}
+				{isUpdatingScores && (
+					<div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-500/90 text-black px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 animate-bounce flex items-center gap-2">
+						<span className="animate-spin">⏳</span> Updating Scores...
+					</div>
+				)}
+
 				{isSuperAdmin && showAdminPanel && (
 						<div className="w-full max-w-4xl mb-8 border-4 border-red-600 bg-gray-900 rounded-xl overflow-hidden shadow-2xl z-50 relative animate-fade-in">
 								<div className="bg-red-600 text-white text-center font-bold text-xs py-2 uppercase tracking-[0.2em]">
@@ -238,7 +245,6 @@ function App() {
 						</div>
 				)}
 
-				{/* --- League Selection --- */}
 				<div className="w-full mb-6 relative z-0">
 					 <LeagueManager 
 						key={session.user.id}
@@ -248,7 +254,6 @@ function App() {
 					/>
 				</div>
 
-				{/* --- League Content --- */}
 				{currentLeagueId && leagueDetails ? (
 					<>
 						<div className="w-full max-w-4xl flex justify-between items-end mb-4 px-2">
@@ -272,7 +277,6 @@ function App() {
 								)}
 						</div>
 
-						{/* --- Leaderboard Table (Receives refreshTrigger) --- */}
 						<LeaderboardTable 
 								leagueId={currentLeagueId} 
 								currentUserId={session.user.id} 
