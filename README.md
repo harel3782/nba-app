@@ -65,7 +65,7 @@ Follow these steps to run the project locally.
 
 1.  **Clone the repo**
     ```sh
-    git clone [https://github.com/your-username/nba-predictor.git](https://github.com/your-username/nba-predictor.git)
+    git clone [https://github.com/harel3782/nba-app.git](https://github.com/harel3782/nba-app.git)
     cd nba-predictor
     ```
 
