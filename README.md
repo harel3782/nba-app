@@ -1,76 +1,111 @@
-# React + TypeScript + Vite
+<div align="center">
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+  <img src="public/pwa-192x192.png" alt="NBA Predictor Logo" width="100" height="100" />
 
-Currently, two official plugins are available:
+  # 🏀 NBA Playoff Predictor
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+  **Compete with friends, predict the bracket, and track live scores.**
+  
+  A modern, interactive Progressive Web App (PWA) built for NBA fans.
 
-## React Compiler
+  [Live Demo](https://nba-app-five.vercel.app) • [Report Bug](https://github.com/harel-mashiah/nba-predictor/issues)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+  <br />
 
-## Expanding the ESLint configuration
+  ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+  ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+  ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+  ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+  ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+</div>
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+<br />
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 📋 About The Project
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+**NBA Playoff Predictor** is a full-stack web application that allows users to create private leagues, predict the NBA regular season standings, and fill out the full playoff bracket. The app uses a unique "Golf Scoring" system (lower is better) and updates scores in real-time based on actual NBA results.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+It is built as a **PWA (Progressive Web App)**, allowing users to install it on their mobile devices for a native-like experience.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ✨ Key Features
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-=======
-# nba-app
->>>>>>> 662fe8028f8ba4d5fb8a7052042bc9282564631e
+### 🎮 User Experience
+* **Drag & Drop Interface:** Easily rank teams for the East/West conference standings using a smooth drag-and-drop UI.
+* **Interactive Bracket:** A visual, dynamic playoff bracket that handles dependencies (e.g., selecting a winner in Round 1 automatically advances them to Round 2).
+* **League System:** Create private leagues or join existing ones via a unique code.
+* **Leaderboard:** Real-time ranking with "Golf Rules" scoring (Linear or Squared penalties).
+* **PWA Support:** Installable on iOS and Android with offline capabilities.
+
+### 🛡️ Admin & Security
+* **Super Admin Panel:** A secure dashboard to update official NBA results and sync live standings.
+* **Authentication:** Secure email/password login via Supabase Auth.
+* **Row Level Security (RLS):** Ensures users can only modify their own predictions.
+* **Locking Mechanism:** Leagues can be locked by the admin to prevent changes after the playoffs start.
+
+## 🛠️ Tech Stack
+
+* **Frontend:** React (Vite), TypeScript
+* **Styling:** Tailwind CSS (Dark Mode aesthetic)
+* **State Management:** React Hooks
+* **Backend / DB:** Supabase (PostgreSQL)
+* **Authentication:** Supabase Auth
+* **Drag & Drop:** `@hello-pangea/dnd`
+* **Deployment:** Vercel
+
+## 🚀 Getting Started
+
+Follow these steps to run the project locally.
+
+### Prerequisites
+* Node.js (v18 or higher)
+* npm or yarn
+
+### Installation
+
+1.  **Clone the repo**
+    ```sh
+    git clone [https://github.com/harel3782/nba-app.git](https://github.com/harel3782/nba-app.git)
+    cd nba-app
+    ```
+
+2.  **Install dependencies**
+    ```sh
+    npm install
+    ```
+
+3.  **Environment Variables**
+    Create a `.env` file in the root directory and add your Supabase credentials:
+    ```env
+    VITE_SUPABASE_URL=your_supabase_url
+    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    ```
+
+4.  **Run the App**
+    ```sh
+    npm run dev
+    ```
+
+## 📐 Database Schema
+
+The project uses a normalized PostgreSQL schema hosted on Supabase:
+
+* `users`: Managed by Supabase Auth.
+* `leagues`: Stores league settings (name, scoring type, lock date).
+* `league_members`: Links users to leagues.
+* `predictions`: Stores regular season ranking predictions.
+* `tournament_predictions`: Stores bracket picks (Play-in to Finals).
+* `official_standings` & `official_playoff_results`: The "Truth" tables updated by the Admin.
+* `leaderboard`: A materialised table updated via Triggers for performance.
+
+## 📸 Screenshots
+
+| Dashboard | Bracket |
+|:---------:|:-------:|
+| *(Place screenshot here)* | *(Place screenshot here)* |
+
+
+## 👤 Author
+
+**Harel Mashiah**
+* Project Link: [https://github.com/your-username/nba-predictor](https://github.com/harel3782/nba-app)
