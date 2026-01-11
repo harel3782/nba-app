@@ -1,18 +1,17 @@
-import { useEffect, useState } from 'react'
-import { supabase } from './supabaseClient'
-import { BettingBoard } from './BettingBoard'
-import { Auth } from './Auth'
-import { LeagueManager } from './LeagueManager'
-import { ProfileModal } from './ProfileModal'
-import { LeagueSettingsModal } from './LeagueSettingsModal'
-import { FullPlayoffBracket } from './FullPlayoffBracket'
-import { AdminResultsControl } from './AdminResultsControl'
-import { AdminStandingsMonitor } from './AdminStandingsMonitor'
-import { LeaderboardTable } from './LeaderboardTable'
-import type { Session } from '@supabase/supabase-js'
+import { useEffect, useState } from 'react';
+import { supabase } from './supabaseClient';
+import { BettingBoard } from './BettingBoard';
+import { Auth } from './Auth';
+import { LeagueManager } from './LeagueManager';
+import { ProfileModal } from './ProfileModal';
+import { LeagueSettingsModal } from './LeagueSettingsModal';
+import { FullPlayoffBracket } from './FullPlayoffBracket';
+import { AdminResultsControl } from './AdminResultsControl';
+import { AdminStandingsMonitor } from './AdminStandingsMonitor';
+import { LeaderboardTable } from './LeaderboardTable';
+import type { Session } from '@supabase/supabase-js';
 
-// --- Main admin setup ---
-// Update: your new admin email
+// --- Super Admin Configuration ---
 const SUPER_ADMIN_EMAIL = "harel.mashiah@gmail.com"; 
 
 interface LeagueDetails {
@@ -24,9 +23,9 @@ interface LeagueDetails {
 }
 
 function App() {
-	const [session, setSession] = useState<Session | null>(null)
+	const [session, setSession] = useState<Session | null>(null);
 	
-	const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null)
+	const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null);
 	const [leagueDetails, setLeagueDetails] = useState<LeagueDetails | null>(null);
 	
 	const [displayName, setDisplayName] = useState('');
@@ -36,18 +35,22 @@ function App() {
 	const [showAdminPanel, setShowAdminPanel] = useState(false);
 
 	const [activeTab, setActiveTab] = useState<'standings' | 'playoffs'>('standings'); 
-	const [loading, setLoading] = useState(false)
-	const [copySuccess, setCopySuccess] = useState(false)
+	const [loading, setLoading] = useState(false);
+	const [copySuccess, setCopySuccess] = useState(false);
+
+	// --- Refresh Trigger State ---
+	// This counter updates whenever a save occurs, forcing the leaderboard to re-fetch
+	const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 	// Auth Effect
 	useEffect(() => {
 		supabase.auth.getSession().then(({ data: { session } }) => {
-			setSession(session)
+			setSession(session);
 			if (session) updateLocalName(session);
-		})
+		});
 
 		const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-			setSession(session)
+			setSession(session);
 			if (session) {
 				updateLocalName(session);
 			} else {
@@ -56,26 +59,26 @@ function App() {
 				setDisplayName('');
 				setShowAdminPanel(false);
 			}
-		})
-		return () => subscription.unsubscribe()
-	}, [])
+		});
+		return () => subscription.unsubscribe();
+	}, []);
 
 	const updateLocalName = (session: Session) => {
 		const metaName = session.user.user_metadata?.display_name;
 		const emailName = session.user.email?.split('@')[0] || 'User';
 		setDisplayName(metaName || emailName);
-	}
+	};
 
 	useEffect(() => {
 		if (currentLeagueId) {
-				fetchLeagueData(currentLeagueId)
+				fetchLeagueData(currentLeagueId);
 		} else {
-				setLeagueDetails(null)
+				setLeagueDetails(null);
 		}
-	}, [currentLeagueId])
+	}, [currentLeagueId]);
 
 	async function fetchLeagueData(leagueId: string) {
-		setLoading(true)
+		setLoading(true);
 		try {
 			const { data: leagueData, error: leagueError } = await supabase
 				.from('leagues')
@@ -87,11 +90,16 @@ function App() {
 			setLeagueDetails(leagueData);
 
 		} catch (error) {
-			console.error("Error fetching league data:", error)
+			console.error("Error fetching league data:", error);
 		} finally {
-			setLoading(false)
+			setLoading(false);
 		}
 	}
+
+	// Callback function to handle successful saves from child components
+	const handleSaveSuccess = () => {
+		setRefreshTrigger(prev => prev + 1);
+	};
 
 	const copyToClipboard = () => {
 		if (currentLeagueId) {
@@ -99,14 +107,14 @@ function App() {
 			setCopySuccess(true);
 			setTimeout(() => setCopySuccess(false), 2000);
 		}
-	}
+	};
 
 	const isLeagueLocked = () => {
 		if (!leagueDetails?.lock_at) return false; 
 		return new Date() > new Date(leagueDetails.lock_at);
 	};
 
-	if (!session) return <Auth />
+	if (!session) return <Auth />;
 
 	if (loading && !leagueDetails) {
 		return (
@@ -117,7 +125,7 @@ function App() {
 	}
 
 	const isLeagueAdmin = session.user.id === leagueDetails?.created_by;
-	// Case-insensitive check
+	// Case-insensitive check for admin email
 	const isSuperAdmin = session.user.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 	const locked = isLeagueLocked();
 
@@ -144,14 +152,14 @@ function App() {
 						currentLockDate={leagueDetails.lock_at}
 						currentScoringType={leagueDetails.scoring_type}
 						onUpdate={() => fetchLeagueData(leagueDetails.id)}
-					/>
+				/>
 			)}
 
 			{/* Header */}
 			<header className="border-b border-white/10 bg-[#1D428A]/90 backdrop-blur-md sticky top-0 z-50 shadow-lg">
 				<div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 					
-					{/* Left side: Logo */}
+					{/* Left: Logo */}
 					<div className="flex items-center gap-3">
 						<img src="https://cdn.nba.com/logos/leagues/logo-nba.svg" alt="NBA" className="h-10 w-auto drop-shadow-md"/>
 						<h1 className="text-xl font-black tracking-tighter uppercase italic text-white hidden sm:block">
@@ -159,10 +167,10 @@ function App() {
 						</h1>
 					</div>
 
-					{/* Right side: Buttons */}
+					{/* Right: Actions */}
 					<div className="flex items-center gap-4">
 						
-						{/* ADMIN MODE button - visible to admin only */}
+						{/* Admin Mode Button - Visible only to Super Admin */}
 						{isSuperAdmin && (
 							<button
 								onClick={() => setShowAdminPanel(!showAdminPanel)}
@@ -177,7 +185,7 @@ function App() {
 							</button>
 						)}
 
-						{/* Profile area (image + name) */}
+						{/* Profile Area */}
 						<button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-3 group hover:bg-white/5 p-1 rounded-full pr-3 transition-all border border-transparent hover:border-white/10">
 							<div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center font-bold shadow-lg border border-white/10">
 								{displayName.charAt(0).toUpperCase()}
@@ -187,12 +195,12 @@ function App() {
 							</span>
 						</button>
 						
-						{/* Clear logout button */}
+						{/* Logout Button */}
 						<button 
 								onClick={() => supabase.auth.signOut()} 
 								className="bg-white/10 hover:bg-red-600/80 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all ml-2"
 						>
-						 	Log Out
+							 Log Out
 						</button>
 					</div>
 				</div>
@@ -203,36 +211,36 @@ function App() {
 				{/* --- ADMIN PANEL --- */}
 				{isSuperAdmin && showAdminPanel && (
 						<div className="w-full max-w-4xl mb-8 border-4 border-red-600 bg-gray-900 rounded-xl overflow-hidden shadow-2xl z-50 relative animate-fade-in">
-							<div className="bg-red-600 text-white text-center font-bold text-xs py-2 uppercase tracking-[0.2em]">
-							 	⚠️ Super Admin Control Panel ⚠️
-							</div>
-							
-							<div className="p-6 flex flex-col gap-10">
-							 	<section>
-									<div className="mb-4 border-b border-gray-700 pb-2 flex justify-between items-center">
-										<h2 className="text-xl font-bold text-white">1. Live Standings Monitor</h2>
-										<span className="text-[10px] bg-green-900 text-green-300 px-2 py-1 rounded border border-green-700 font-bold tracking-wider">
-										 	● AUTO-SYNC ACTIVE
-										</span>
-									</div>
-									<p className="text-gray-400 text-xs mb-4">Verifying data from your external script:</p>
-									<AdminStandingsMonitor />
-								</section>
-							
-							<section>
-									<div className="mb-4 border-b border-gray-700 pb-2">
-										<h2 className="text-xl font-bold text-white">2. Playoff Results Controls</h2>
-									</div>
-									<p className="text-gray-400 text-xs mb-4">Click to mark official winners:</p>
-									<AdminResultsControl />
-								</section>
-							</div>
+								<div className="bg-red-600 text-white text-center font-bold text-xs py-2 uppercase tracking-[0.2em]">
+									 ⚠️ Super Admin Control Panel ⚠️
+								</div>
+								
+								<div className="p-6 flex flex-col gap-10">
+									 <section>
+											<div className="mb-4 border-b border-gray-700 pb-2 flex justify-between items-center">
+												<h2 className="text-xl font-bold text-white">1. Live Standings Monitor</h2>
+												<span className="text-[10px] bg-green-900 text-green-300 px-2 py-1 rounded border border-green-700 font-bold tracking-wider">
+													 ● AUTO-SYNC ACTIVE
+												</span>
+											</div>
+											<p className="text-gray-400 text-xs mb-4">Verifying data from your external script:</p>
+											<AdminStandingsMonitor />
+									 </section>
+
+									 <section>
+											<div className="mb-4 border-b border-gray-700 pb-2">
+												<h2 className="text-xl font-bold text-white">2. Playoff Results Controls</h2>
+											</div>
+											<p className="text-gray-400 text-xs mb-4">Click to mark official winners:</p>
+											<AdminResultsControl />
+									 </section>
+								</div>
 						</div>
-					)}
+				)}
 
 				{/* --- League Selection --- */}
 				<div className="w-full mb-6 relative z-0">
-				 	<LeagueManager 
+					 <LeagueManager 
 						key={session.user.id}
 						userId={session.user.id} 
 						currentLeagueId={currentLeagueId} 
@@ -244,53 +252,76 @@ function App() {
 				{currentLeagueId && leagueDetails ? (
 					<>
 						<div className="w-full max-w-4xl flex justify-between items-end mb-4 px-2">
-							<div>
-								<h2 className="text-4xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg">
-									{leagueDetails.name}
-								</h2>
-								<div 
-									onClick={copyToClipboard}
-									className="text-sm text-blue-300 cursor-pointer hover:text-white transition-colors flex items-center gap-2 mt-1"
-								>
-									<span>ID: {currentLeagueId}</span>
-									{copySuccess ? <span className="text-green-400 font-bold">✓ Copied</span> : <span>📋</span>}
+								<div>
+										<h2 className="text-4xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg">
+												{leagueDetails.name}
+										</h2>
+										<div 
+												onClick={copyToClipboard}
+												className="text-sm text-blue-300 cursor-pointer hover:text-white transition-colors flex items-center gap-2 mt-1"
+										>
+												<span>ID: {currentLeagueId}</span>
+												{copySuccess ? <span className="text-green-400 font-bold">✓ Copied</span> : <span>📋</span>}
+										</div>
 								</div>
-							</div>
-							
-							{isLeagueAdmin && (
-								<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2">
-									⚙️ League Settings
-								</button>
-							)}
+								
+								{isLeagueAdmin && (
+										<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2">
+												⚙️ League Settings
+										</button>
+								)}
 						</div>
 
+						{/* --- Leaderboard Table (Receives refreshTrigger) --- */}
 						<LeaderboardTable 
-							leagueId={currentLeagueId} 
-							currentUserId={session.user.id} 
+								leagueId={currentLeagueId} 
+								currentUserId={session.user.id} 
+								refreshTrigger={refreshTrigger}
 						/>
 
 						<div className="flex justify-center mb-6 gap-4 mt-8">
-							<button 
-								onClick={() => setActiveTab('standings')} 
-								className={`px-8 py-2 rounded-full font-bold uppercase tracking-wider transition-all ${activeTab === 'standings' ? 'bg-white text-blue-900 scale-105 shadow-lg' : 'bg-white/10 hover:bg-white/20'}`}
-							>
-								Standings
-							</button>
-							<button 
-								onClick={() => setActiveTab('playoffs')} 
-								className={`px-8 py-2 rounded-full font-bold uppercase tracking-wider transition-all ${activeTab === 'playoffs' ? 'bg-orange-500 text-white scale-105 shadow-lg' : 'bg-white/10 hover:bg-white/20'}`}
-							>
-								Playoffs
-							</button>
+								<button 
+										onClick={() => setActiveTab('standings')} 
+										className={`px-8 py-2 rounded-full font-bold uppercase tracking-wider transition-all ${activeTab === 'standings' ? 'bg-white text-blue-900 scale-105 shadow-lg' : 'bg-white/10 hover:bg-white/20'}`}
+								>
+										Standings
+								</button>
+								<button 
+										onClick={() => setActiveTab('playoffs')} 
+										className={`px-8 py-2 rounded-full font-bold uppercase tracking-wider transition-all ${activeTab === 'playoffs' ? 'bg-orange-500 text-white scale-105 shadow-lg' : 'bg-white/10 hover:bg-white/20'}`}
+								>
+										Playoffs
+								</button>
 						</div>
 
 						{activeTab === 'standings' ? (
-							<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl animate-fade-in">
-								<div className="flex justify-center"><BettingBoard conference="West" userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} /></div>
-								<div className="flex justify-center"><BettingBoard conference="East" userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} /></div>
-							</div>
+								<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl animate-fade-in">
+										<div className="flex justify-center">
+											<BettingBoard 
+												conference="West" 
+												userId={session.user.id} 
+												leagueId={currentLeagueId} 
+												isLocked={locked} 
+												onSave={handleSaveSuccess}
+											/>
+										</div>
+										<div className="flex justify-center">
+											<BettingBoard 
+												conference="East" 
+												userId={session.user.id} 
+												leagueId={currentLeagueId} 
+												isLocked={locked} 
+												onSave={handleSaveSuccess}
+											/>
+										</div>
+								</div>
 						) : (
-							<FullPlayoffBracket userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} />
+								<FullPlayoffBracket 
+									userId={session.user.id} 
+									leagueId={currentLeagueId} 
+									isLocked={locked} 
+									onSave={handleSaveSuccess}
+								/>
 						)}
 					</>
 				) : (
@@ -300,7 +331,7 @@ function App() {
 				)}
 			</main>
 		</div>
-	)
+	);
 }
 
-export default App
+export default App;
