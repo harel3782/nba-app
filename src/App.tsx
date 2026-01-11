@@ -48,23 +48,6 @@ function App() {
 	// Auth Effect
 	useEffect(() => {
 
-	if (Capacitor.isNativePlatform()) {
-        const setStatusBarStyle = async () => {
-            try {
-                // 1. צבע רקע כחול
-                await StatusBar.setBackgroundColor({ color: '#1D428A' });
-                
-                // 2. טקסט בהיר (לבן)
-                await StatusBar.setStyle({ style: Style.Dark }); 
-                
-                // 3. התיקון: מבטל את החפיפה! האפליקציה תתחיל מתחת לסטטוס בר
-                await StatusBar.setOverlaysWebView({ overlay: false }); 
-            } catch (e) {
-                console.log('StatusBar error', e);
-            }
-        };
-        setStatusBarStyle();
-    }
 		supabase.auth.getSession().then(({ data: { session } }) => {
 			setSession(session);
 			if (session) updateLocalName(session);
