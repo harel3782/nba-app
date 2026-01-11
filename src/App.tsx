@@ -48,15 +48,19 @@ function App() {
 	// Auth Effect
 	useEffect(() => {
 
-    if (Capacitor.isNativePlatform()) {
+	if (Capacitor.isNativePlatform()) {
         const setStatusBarStyle = async () => {
             try {
-                // צובע את הסטטוס בר בכחול NBA
+                // 1. צבע רקע כחול
                 await StatusBar.setBackgroundColor({ color: '#1D428A' });
-                // הופך את הטקסט (שעון/סוללה) לבהיר
+                
+                // 2. טקסט בהיר (לבן)
                 await StatusBar.setStyle({ style: Style.Dark }); 
+                
+                // 3. התיקון: מבטל את החפיפה! האפליקציה תתחיל מתחת לסטטוס בר
+                await StatusBar.setOverlaysWebView({ overlay: false }); 
             } catch (e) {
-                console.log('StatusBar not implemented on web');
+                console.log('StatusBar error', e);
             }
         };
         setStatusBarStyle();
