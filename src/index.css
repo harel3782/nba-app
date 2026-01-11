@@ -1,3 +1,54 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* --- Mobile Native Feel Fixes --- */
+:root {
+  /* מגדיר את האזורים הבטוחים (מתחת לשעון ולפס התחתון) */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+}
+
+body {
+  /* מונע "קפיצה" של גלילה (Rubber band effect) באייפון */
+  overscroll-behavior-y: none;
+  
+  /* מונע בחירת טקסט בטעות (למעט בתוך input) */
+  -webkit-user-select: none;
+  user-select: none;
+  
+  /* מבטל את ההבהוב הכחול בלחיצה על כפתורים באנדרואיד */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* רקע כהה כברירת מחדל כדי למנוע הבהוב לבן בטעינה */
+  background-color: #0f172a;
+}
+
+/* מאפשר בחירת טקסט רק בתיבות טקסט */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* מעלים את פסי הגלילה המכוערים אבל משאיר את הגלילה עצמה */
+::-webkit-scrollbar {
+  display: none; 
+}
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* התאמה של ה-Header לאזור הבטוח */
+header {
+  padding-top: max(0.75rem, var(--sat)); /* לוקח את המקסימום בין המרווח הרגיל לנוטץ' */
+  padding-left: max(1rem, var(--sal));
+  padding-right: max(1rem, var(--sar));
+}
+
+/* התאמה של תחתית המסך שלא תיחתך */
+main {
+  padding-bottom: max(2rem, var(--sab));
+}
