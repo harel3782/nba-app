@@ -132,12 +132,6 @@ The project uses a normalized PostgreSQL schema hosted on Supabase:
 - `official_standings` & `official_playoff_results`: The "Truth" tables updated by Admin.
 - `leaderboard`: Materialized view for high-performance ranking.
 
-## 📸 Screenshots
-
-|         Mobile Login          |          Bracket Zoom          |
-| :---------------------------: | :----------------------------: |
-| *(Place screenshot here)* | *(Place screenshot here)* |
-
 ## 👤 Author
 
 **Harel Mashiah**
