@@ -32,18 +32,18 @@ Originally a web app, it has been evolved into a **Native Android Application** 
 
 ## ✨ Key Features
 
-### 📱 Mobile Native Experience (New!)
+### 📱 Mobile Native Experience
 - **Native Android App:** Fully functional `.apk` build running natively on Android devices.
 - **Optimized UI:** Full-screen immersive mode with NBA-themed status bar (`#1D428A`).
 - **Touch Controls:** Native-feel scrolling, disabled text selection, and removed tap highlights.
-- **Custom Assets:** Adaptive launcher icons and splash screens.
+- **Custom Assets:** Adaptive launcher icons and splash screens generated via `capacitor-assets`.
 
 ### 🎮 User Experience
 - **Interactive Bracket:** A visual, dynamic playoff bracket that handles dependencies.
 - **Zoom & Pan Controls:** Built-in zoom functionality to view the massive bracket easily on small screens.
+- **Mobile Action Bar:** A sticky bottom bar for easy access to "Save" and zoom controls on mobile devices.
 - **Drag & Drop:** Easily rank teams for the East/West conference standings.
 - **Smart Validation:** Automatically advances winners to the next round (Round 1 → Finals).
-- **Sticky Actions:** Always-visible "Save" and control bar for better usability on mobile.
 
 ### 🏆 Competition & Scoring
 - **League System:** Create private leagues or join existing ones via a unique code.
@@ -51,7 +51,7 @@ Originally a web app, it has been evolved into a **Native Android Application** 
 - **Live Updates:** Scores update automatically as real NBA games conclude.
 
 ### 🛡️ Admin & Security
-- **Super Admin Panel:** A secure dashboard to update official NBA results.
+- **Super Admin Panel:** A secure dashboard to update official NBA results (Hidden via Env Vars).
 - **Row Level Security (RLS):** Ensures users can only modify their own predictions.
 - **Locking Mechanism:** Leagues can be locked to prevent changes after tip-off.
 
@@ -87,10 +87,14 @@ Follow these steps to run the project locally or build for Android.
     ```
 
 3.  **Environment Variables**
-    Create a `.env` file in the root directory:
+    Create a `.env` file in the root directory. **Do not commit this file.**
+    
     ```env
     VITE_SUPABASE_URL=your_supabase_url
     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    
+    # The email address that will have Super Admin access
+    VITE_SUPER_ADMIN_EMAIL=your_admin_email@gmail.com
     ```
 
 ### 🖥️ Run on Web
