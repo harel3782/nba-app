@@ -45,7 +45,7 @@ export function LeagueSettings({ leagueId, currentUserId }: Props) {
 		} else {
 			setScoringType(mode);
 			// Optional: reload the page so leaderboard scores update visually
-			window.location.reload(); 
+			window.location.reload();
 		}
 	}
 
@@ -57,7 +57,7 @@ export function LeagueSettings({ leagueId, currentUserId }: Props) {
 			<h3 className="text-white font-bold mb-3 flex items-center gap-2">
 				⚙️ League Rules (Admin Only)
 			</h3>
-			
+
 			<div className="flex gap-4">
 				{/* Regular button */}
 				<button
@@ -66,7 +66,7 @@ export function LeagueSettings({ leagueId, currentUserId }: Props) {
 						scoringType === 'linear'
 							? 'bg-blue-600 text-white ring-2 ring-blue-300'
 							: 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-					}`} 
+					}`}
 				>
 					Regular Scoring
 					<div className="text-[10px] font-normal opacity-70">1 place off = 1 point</div>
@@ -79,10 +79,12 @@ export function LeagueSettings({ leagueId, currentUserId }: Props) {
 						scoringType === 'squared'
 							? 'bg-red-600 text-white ring-2 ring-red-300'
 							: 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-					}`} 
+					}`}
 				>
 					Hardcore Scoring (Squared)
-					<div className="text-[10px] font-normal opacity-70">10 places off = 100 points!</div>
+					<div className="text-[10px] font-normal opacity-70">
+						10 places off = 100 points!
+					</div>
 				</button>
 			</div>
 		</div>

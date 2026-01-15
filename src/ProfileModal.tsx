@@ -30,7 +30,7 @@ export function ProfileModal({ isOpen, onClose, currentName, userId, onUpdate }:
 
 			// 2. Update user metadata (for the header and session)
 			await supabase.auth.updateUser({
-				data: { display_name: username }
+				data: { display_name: username },
 			});
 
 			// notify the app that the name changed
@@ -47,10 +47,7 @@ export function ProfileModal({ isOpen, onClose, currentName, userId, onUpdate }:
 	return (
 		<div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
 			{/* Semi-transparent black backdrop */}
-			<div 
-				className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-				onClick={onClose}
-			></div>
+			<div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose}></div>
 
 			{/* Modal window */}
 			<div className="relative bg-[#1D428A] border border-white/20 w-full max-w-md rounded-2xl shadow-2xl p-6 overflow-hidden">
@@ -63,9 +60,11 @@ export function ProfileModal({ isOpen, onClose, currentName, userId, onUpdate }:
 
 				<div className="space-y-4 relative z-10">
 					<div>
-						<label className="block text-blue-200 text-xs font-bold uppercase mb-2">Display Name</label>
-						<input 
-							type="text" 
+						<label className="block text-blue-200 text-xs font-bold uppercase mb-2">
+							Display Name
+						</label>
+						<input
+							type="text"
 							value={username}
 							onChange={(e) => setUsername(e.target.value)}
 							className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 transition-colors placeholder-white/30"
@@ -74,13 +73,13 @@ export function ProfileModal({ isOpen, onClose, currentName, userId, onUpdate }:
 					</div>
 
 					<div className="flex gap-3 mt-6">
-						<button 
+						<button
 							onClick={onClose}
 							className="flex-1 py-3 rounded-lg font-bold text-blue-200 hover:bg-white/5 transition-colors"
 						>
 							Cancel
 						</button>
-						<button 
+						<button
 							onClick={handleSave}
 							disabled={loading}
 							className="flex-1 py-3 rounded-lg font-bold bg-orange-600 hover:bg-orange-500 text-white shadow-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"

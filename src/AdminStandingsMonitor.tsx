@@ -23,11 +23,13 @@ export function AdminStandingsMonitor() {
 	}
 
 	const renderConf = (conf: 'West' | 'East') => {
-		const confTeams = standings.filter(s => s.conference === conf);
-		
+		const confTeams = standings.filter((s) => s.conference === conf);
+
 		return (
 			<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-				<h4 className={`text-lg font-bold mb-3 uppercase ${conf === 'West' ? 'text-blue-400' : 'text-red-400'}`}>
+				<h4
+					className={`text-lg font-bold mb-3 uppercase ${conf === 'West' ? 'text-blue-400' : 'text-red-400'}`}
+				>
 					{conf} (Live from DB)
 				</h4>
 				{confTeams.length === 0 ? (
@@ -37,19 +39,29 @@ export function AdminStandingsMonitor() {
 						{confTeams.map((row) => {
 							// Attempt to find the team in the config file to show logo and nice name
 							// If not found - script probably wrote an incorrect ID!
-							const teamConfig = NBA_TEAMS.find(t => t.id === row.team_id);
+							const teamConfig = NBA_TEAMS.find((t) => t.id === row.team_id);
 							const isMatch = !!teamConfig;
 
 							return (
-								<div key={row.team_id} className={`flex items-center gap-3 text-sm p-1.5 rounded ${isMatch ? 'bg-white/5' : 'bg-red-900/50 border border-red-500'}`}>
-									<span className="w-6 text-right font-mono text-gray-400">#{row.rank}</span>
+								<div
+									key={row.team_id}
+									className={`flex items-center gap-3 text-sm p-1.5 rounded ${isMatch ? 'bg-white/5' : 'bg-red-900/50 border border-red-500'}`}
+								>
+									<span className="w-6 text-right font-mono text-gray-400">
+										#{row.rank}
+									</span>
 									{teamConfig ? (
 										<>
-											<img src={teamConfig.logo} className="w-5 h-5 object-contain" />
+											<img
+												src={teamConfig.logo}
+												className="w-5 h-5 object-contain"
+											/>
 											<span className="text-white">{teamConfig.name}</span>
 										</>
 									) : (
-										<span className="text-red-300 font-bold">⚠️ Unknown ID: {row.team_id}</span>
+										<span className="text-red-300 font-bold">
+											⚠️ Unknown ID: {row.team_id}
+										</span>
 									)}
 								</div>
 							);
@@ -66,14 +78,19 @@ export function AdminStandingsMonitor() {
 		<div className="w-full">
 			<div className="flex justify-between items-center mb-4">
 				<p className="text-xs text-gray-400">
-					These are the standings currently stored in <code>official_standings</code> table.
-					<br/>Updated automatically by your external script.
+					These are the standings currently stored in <code>official_standings</code>{' '}
+					table.
+					<br />
+					Updated automatically by your external script.
 				</p>
-				<button onClick={fetchStandings} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded">
+				<button
+					onClick={fetchStandings}
+					className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded"
+				>
 					🔄 Refresh
 				</button>
 			</div>
-			
+
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				{renderConf('West')}
 				{renderConf('East')}

@@ -1,27 +1,27 @@
 name: Update NBA Standings
 
 on:
-  schedule:
-    - cron: '0 8 * * *' # רץ כל יום ב-08:00 בבוקר (UTC)
-  workflow_dispatch: # מאפשר לך להריץ ידנית בלחיצת כפתור לבדיקה
+    schedule:
+        - cron: '0 8 * * *' # רץ כל יום ב-08:00 בבוקר (UTC)
+    workflow_dispatch: # מאפשר לך להריץ ידנית בלחיצת כפתור לבדיקה
 
 jobs:
-  update-db:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-          
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          
-      - name: Run update script
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: python main.py
+    update-db:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: '3.9'
+
+            - name: Install dependencies
+              run: |
+                  pip install -r requirements.txt
+
+            - name: Run update script
+              env:
+                  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+                  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+              run: python main.py
