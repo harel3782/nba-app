@@ -7,7 +7,7 @@ interface Props {
 	userId: string;
 	leagueId: string;
 	isLocked: boolean;
-	onSave?: () => void; // Optional callback
+	onSave?: () => void;
 }
 
 type Picks = Record<string, string>;
@@ -37,7 +37,6 @@ const DEPENDENCIES: Record<string, string[]> = {
 		'e_finals': ['nba_finals']
 };
 
-// --- Recursive Cleaning Function ---
 function cleanRecursive(picks: Picks, startMatchId: string): Picks {
 		const newPicks = { ...picks };
 		const queue = [startMatchId];
@@ -58,7 +57,6 @@ function cleanRecursive(picks: Picks, startMatchId: string): Picks {
 		return newPicks;
 }
 
-// --- Bracket Lines SVG ---
 const BracketLines = ({ type, isRev = false }: { type: 'r1_to_semis' | 'semis_to_finals', isRev?: boolean }) => {
 		const stroke = "#6b7280"; 
 		const strokeWidth = 2;
@@ -102,7 +100,6 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		async function loadData() {
 				setLoading(true);
 				
-				// 1. Load standings from predictions
 				const { data: rankData } = await supabase
 				.from('predictions')
 				.select('team_id, predicted_rank, conference')
@@ -116,7 +113,6 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						setStandings({ West: west, East: east });
 				}
 
-				// 2. Load bracket predictions
 				const { data: bracketData } = await supabase
 						.from('tournament_predictions')
 						.select('stage_slug, team_id')
@@ -133,7 +129,6 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						setPicks({});
 				}
 
-				// 3. Load official results
 				const { data: resultsData } = await supabase
 						.from('official_playoff_results')
 						.select('match_id, winning_team_id');
@@ -172,7 +167,6 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 							console.error(error);
 							alert('Error saving bracket');
 					} else {
-						// Success! Refresh leaderboard
 						if (onSave) onSave();
 					}
 			}
@@ -191,7 +185,6 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						newPicks[matchId] = teamId;
 				}
 				
-				// Recursive cleaning
 				newPicks = cleanRecursive(newPicks, matchId);
 
 				return newPicks;
@@ -356,9 +349,11 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 	const champion = getTeam(picks['nba_finals']);
 
 	return (
-		<div className="w-full h-[calc(100vh-80px)] bg-[#0f172a] overflow-hidden flex flex-col items-center">
+		// FIX: Changed container to allow scrolling (overflow-auto) and removed fixed height
+		<div className="w-full min-h-screen bg-[#0f172a] overflow-auto flex flex-col items-center pb-32">
 				
-				<div className="w-full flex justify-end px-8 py-2 z-50 bg-[#0f172a]/50 backdrop-blur-sm border-b border-white/5">
+				{/* FIX: Made the Save Button Sticky so it stays at the top */}
+				<div className="w-full flex justify-end px-8 py-2 z-50 bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5 sticky top-0">
 						<button
 								onClick={savePicks}
 								disabled={saving || isLocked}
@@ -381,7 +376,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						</button>
 				</div>
 
-				<div className="flex-1 w-full flex justify-center items-start pt-4">
+				<div className="flex-1 w-full flex justify-center items-start pt-4 overflow-x-auto">
 						<div className="transform scale-[0.65] sm:scale-[0.70] md:scale-[0.75] xl:scale-[0.80] origin-top flex flex-col items-center gap-6">
 								
 								<div className="flex flex-row items-center justify-center gap-0">
