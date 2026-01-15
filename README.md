@@ -77,6 +77,10 @@ Follow these steps to run the project locally or build for Android.
 
 ### Prerequisites
 - Node.js (v18+)
+
+### 🗄️ Database Setup
+
+To replicate the database structure (Tables, RLS Policies, and Triggers), please run the SQL script provided in [`schema.sql`](./schema.sql) in your Supabase SQL Editor.
   
 ### Installation
 
