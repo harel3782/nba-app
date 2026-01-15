@@ -7,7 +7,7 @@ interface Props {
 	leagueId: string;
 	currentName: string;
 	currentLockDate: string | null;
-	currentScoringType?: string; // new: current scoring type
+	currentScoringType?: string;
 	onUpdate: () => void;
 }
 

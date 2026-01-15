@@ -8,7 +8,7 @@ export function Auth() {
 	const [username, setUsername] = useState('');
 	const [isSignUp, setIsSignUp] = useState(false);
 	const [errorMsg, setErrorMsg] = useState('');
-	const [infoMsg, setInfoMsg] = useState(''); // הודעה ירוקה למשתמש
+	const [infoMsg, setInfoMsg] = useState(''); // Green message for the user
 
 	const handleAuth = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -18,7 +18,7 @@ export function Auth() {
 
 		try {
 			if (isSignUp) {
-				// --- הרשמה ---
+				// --- Sign Up ---
 				const { data, error } = await supabase.auth.signUp({
 					email,
 					password,
@@ -26,22 +26,22 @@ export function Auth() {
 						data: {
 							display_name: username,
 						},
-						// מפנה חזרה לאפליקציה ב-Vercel אחרי הלחיצה במייל
+						// Redirects back to the app in Vercel after clicking the email
 						emailRedirectTo: window.location.origin,
 					},
 				});
 
 				if (error) throw error;
 
-				// אם ההרשמה הצליחה אבל אין סשן - סימן שצריך לאמת מייל
+				// If registration succeeded but no session - sign that email needs to be verified
 				if (data.user && !data.session) {
 					setInfoMsg(
 						'Registration successful! Please check your email to verify your account before logging in.',
 					);
-					setIsSignUp(false); // מחזיר אותו למסך לוגין
+					setIsSignUp(false); // Returns him to the login screen
 				}
 			} else {
-				// --- התחברות ---
+				// --- Log In ---
 				const { error } = await supabase.auth.signInWithPassword({
 					email,
 					password,
@@ -58,7 +58,7 @@ export function Auth() {
 	return (
 		<div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
 			<div className="w-full max-w-md bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
-				{/* טאבים למעלה */}
+				{/* Tabs above */}
 				<div className="flex text-center border-b border-gray-700">
 					<button
 						onClick={() => {
@@ -87,14 +87,14 @@ export function Auth() {
 						{isSignUp ? 'Create Account' : 'Welcome Back'}
 					</h2>
 
-					{/* הודעת שגיאה */}
+					{/* Error message */}
 					{errorMsg && (
 						<div className="bg-red-900/50 border border-red-500/50 text-red-200 p-3 rounded mb-4 text-center text-sm animate-pulse">
 							⚠️ {errorMsg}
 						</div>
 					)}
 
-					{/* הודעת הצלחה (אימות מייל) */}
+					{/* Success message (email verification) */}
 					{infoMsg && (
 						<div className="bg-green-900/50 border border-green-500/50 text-green-200 p-4 rounded mb-6 text-center text-sm">
 							📩 {infoMsg}
@@ -102,7 +102,7 @@ export function Auth() {
 					)}
 
 					<form onSubmit={handleAuth} className="flex flex-col gap-4">
-						{/* שדה שם משתמש - רק בהרשמה */}
+						{/* Username field - only in sign up */}
 						{isSignUp && (
 							<div>
 								<label className="block text-xs uppercase text-gray-400 mb-1 font-bold">

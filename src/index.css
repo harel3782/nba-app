@@ -4,7 +4,7 @@
 
 /* --- Mobile Native Feel Fixes --- */
 :root {
-	/* מגדיר את האזורים הבטוחים (מתחת לשעון ולפס התחתון) */
+	/* Defines the safe areas (under the clock and bottom bar) */
 	--sat: env(safe-area-inset-top);
 	--sab: env(safe-area-inset-bottom);
 	--sal: env(safe-area-inset-left);
@@ -12,28 +12,28 @@
 }
 
 body {
-	/* מונע "קפיצה" של גלילה (Rubber band effect) באייפון */
+	/* Prevents "bounce" scrolling (Rubber band effect) on iPhone */
 	overscroll-behavior-y: none;
 
-	/* מונע בחירת טקסט בטעות (למעט בתוך input) */
+	/* Prevents accidental text selection (except inside input) */
 	-webkit-user-select: none;
 	user-select: none;
 
-	/* מבטל את ההבהוב הכחול בלחיצה על כפתורים באנדרואיד */
+	/* Cancels the blue flash on button clicks in Android */
 	-webkit-tap-highlight-color: transparent;
 
-	/* רקע כהה כברירת מחדל כדי למנוע הבהוב לבן בטעינה */
+	/* Dark background by default to prevent white flash on load */
 	background-color: #0f172a;
 }
 
-/* מאפשר בחירת טקסט רק בתיבות טקסט */
+/* Allows text selection only in text boxes */
 input,
 textarea {
 	-webkit-user-select: text;
 	user-select: text;
 }
 
-/* מעלים את פסי הגלילה המכוערים אבל משאיר את הגלילה עצמה */
+/* Hides the ugly scrollbars but keeps the scrolling itself */
 ::-webkit-scrollbar {
 	display: none;
 }
@@ -42,14 +42,14 @@ textarea {
 	scrollbar-width: none; /* Firefox */
 }
 
-/* התאמה של ה-Header לאזור הבטוח */
+/* Adjustment of the Header to the safe area */
 header {
-	padding-top: max(0.75rem, var(--sat)); /* לוקח את המקסימום בין המרווח הרגיל לנוטץ' */
+	padding-top: max(0.75rem, var(--sat)); /* Takes the maximum between the regular margin and the notch */
 	padding-left: max(1rem, var(--sal));
 	padding-right: max(1rem, var(--sar));
 }
 
-/* התאמה של תחתית המסך שלא תיחתך */
+/* Adjustment of the bottom of the screen so it doesn't get cut off */
 main {
 	padding-bottom: max(2rem, var(--sab));
 }

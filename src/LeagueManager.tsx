@@ -9,7 +9,7 @@ interface League {
 interface Props {
 	userId: string;
 	currentLeagueId: string | null;
-	// שינוי: הפונקציה מקבלת עכשיו גם שם
+	// Change: The function now also receives a name
 	onLeagueChange: (leagueId: string, leagueName: string) => void;
 }
 
@@ -39,7 +39,7 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props
 
 			if (leaguesData) {
 				setMyLeagues(leaguesData);
-				// אם אין ליגה נבחרת, בוחרים את הראשונה
+				// If no league is selected, select the first one
 				if (!currentLeagueId && leaguesData.length > 0) {
 					onLeagueChange(leaguesData[0].id, leaguesData[0].name);
 				}
@@ -68,7 +68,7 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props
 		});
 
 		await fetchMyLeagues();
-		onLeagueChange(league.id, league.name); // מעדכן גם שם
+		onLeagueChange(league.id, league.name); // Also updates name
 		setActiveTab('list');
 		setNewLeagueName('');
 	}
@@ -76,7 +76,7 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props
 	async function joinLeague() {
 		if (!joinCode) return;
 
-		// קודם מביאים את שם הליגה כדי לוודא שהיא קיימת
+		// First, get the league name to ensure it exists
 		const { data: league, error: leagueError } = await supabase
 			.from('leagues')
 			.select('name')
@@ -100,7 +100,7 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props
 		}
 
 		await fetchMyLeagues();
-		onLeagueChange(joinCode, league.name); // מעדכן גם שם
+		onLeagueChange(joinCode, league.name); // Also updates name
 		setActiveTab('list');
 		setJoinCode('');
 	}
