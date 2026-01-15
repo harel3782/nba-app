@@ -100,6 +100,7 @@ Follow these steps to run the project locally or build for Android.
 ### 🖥️ Run on Web
 ```sh
 npm run dev
+```
 
 ### 🤖 Build for Android
 To generate the APK for mobile devices:
