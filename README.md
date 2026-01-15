@@ -108,25 +108,6 @@ Follow these steps to run the project locally or build for Android.
 npm run dev
 ```
 
-### 🤖 Build for Android
-To generate the APK for mobile devices:
-
-1.  **Build the web assets:**
-    ```sh
-    npm run build
-    ```
-
-2.  **Sync with Capacitor:**
-    ```sh
-    npx cap sync
-    ```
-
-3.  **Open in Android Studio:**
-    ```sh
-    npx cap open android
-    ```
-    *From here, connect your device and click "Run" (▶️) or Build > Build APK.*
-
 ## 📐 Database Schema
 
 The project uses a normalized PostgreSQL schema hosted on Supabase:
