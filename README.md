@@ -98,8 +98,6 @@ Follow these steps to run the project locally or build for Android.
     ```env
     VITE_SUPABASE_URL=your_supabase_url
     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    
-    # The email address that will have Super Admin access
     VITE_SUPER_ADMIN_EMAIL=your_admin_email@gmail.com
     ```
 
