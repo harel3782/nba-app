@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="public/pwa-192x192.png" alt="NBA Predictor Logo" width="100" height="100" />
+  <img src="public/logo.png" alt="NBA Predictor Logo" width="100" height="100" />
 
 # 🏀 NBA Playoff Predictor
 
