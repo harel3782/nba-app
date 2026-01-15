@@ -114,4 +114,4 @@ The project uses a normalized PostgreSQL schema hosted on Supabase:
 
 **Harel Mashiah**
 
-- Project Link: [https://github.com/your-username/nba-predictor](https://github.com/harel3782/nba-app)
+- Project Link: [https://github.com/harel3782/nba-app](https://github.com/harel3782/nba-app)
