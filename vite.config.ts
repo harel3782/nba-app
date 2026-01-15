@@ -17,12 +17,12 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'logo.png', // תיקנתי כאן ל-logo.png
-            sizes: '192x192', // אם זה הגודל (או שהדפדפן יכווץ לבד)
+            src: 'logo.png',
+            sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'logo.png', // תיקנתי כאן ל-logo.png
+            src: 'logo.png',
             sizes: '512x512',
             type: 'image/png'
           }
