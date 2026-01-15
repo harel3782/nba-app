@@ -1,12 +1,12 @@
 <div align="center">
 
-  <img src="public/pwa-192x192.png" alt="NBA Predictor Logo" width="100" height="100" />
+  <img src="public/logo.png" alt="NBA Predictor Logo" width="120" height="120" />
 
 # 🏀 NBA Playoff Predictor
 
 **Compete with friends, predict the bracket, and track live scores.**
 
-A modern, interactive Progressive Web App (PWA) built for NBA fans.
+A full-stack cross-platform application (Web & Android) built for NBA fans.
 
 [Live Demo](https://nba-app-five.vercel.app)
 
@@ -17,6 +17,8 @@ A modern, interactive Progressive Web App (PWA) built for NBA fans.
 ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+![Capacitor](https://img.shields.io/badge/Capacitor-119EFF?style=for-the-badge&logo=capacitor&logoColor=white)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 
 </div>
 
@@ -24,94 +26,73 @@ A modern, interactive Progressive Web App (PWA) built for NBA fans.
 
 ## 📋 About The Project
 
-**NBA Playoff Predictor** is a full-stack web application that allows users to create private leagues, predict the NBA regular season standings, and fill out the full playoff bracket. The app uses a unique "Golf Scoring" system (lower is better) and updates scores in real-time based on actual NBA results.
+**NBA Playoff Predictor** is a powerful application that allows users to create private leagues, predict the NBA regular season standings, and fill out the full playoff bracket.
 
-It is built as a **PWA (Progressive Web App)**, allowing users to install it on their mobile devices for a native-like experience.
+Originally a web app, it has been evolved into a **Native Android Application** using **Capacitor**, offering a seamless mobile experience with native status bars, splash screens, and smooth performance. The app uses a unique "Golf Scoring" system (lower is better) and updates scores in real-time based on actual NBA results.
 
 ## ✨ Key Features
 
-### 🎮 User Experience
+### 📱 Mobile Native Experience (New!)
+- **Native Android App:** Fully functional `.apk` build running natively on Android devices.
+- **Optimized UI:** Full-screen immersive mode with NBA-themed status bar (`#1D428A`).
+- **Touch Controls:** Native-feel scrolling, disabled text selection, and removed tap highlights.
+- **Custom Assets:** Adaptive launcher icons and splash screens.
 
-- **Drag & Drop Interface:** Easily rank teams for the East/West conference standings using a smooth drag-and-drop UI.
-- **Interactive Bracket:** A visual, dynamic playoff bracket that handles dependencies (e.g., selecting a winner in Round 1 automatically advances them to Round 2).
+### 🎮 User Experience
+- **Interactive Bracket:** A visual, dynamic playoff bracket that handles dependencies.
+- **Zoom & Pan Controls:** Built-in zoom functionality to view the massive bracket easily on small screens.
+- **Drag & Drop:** Easily rank teams for the East/West conference standings.
+- **Smart Validation:** Automatically advances winners to the next round (Round 1 → Finals).
+- **Sticky Actions:** Always-visible "Save" and control bar for better usability on mobile.
+
+### 🏆 Competition & Scoring
 - **League System:** Create private leagues or join existing ones via a unique code.
-- **Leaderboard:** Real-time ranking with "Golf Rules" scoring (Linear or Squared penalties).
-- **PWA Support:** Installable on iOS and Android with offline capabilities.
+- **Leaderboard:** Real-time ranking with "Golf Rules" scoring.
+- **Live Updates:** Scores update automatically as real NBA games conclude.
 
 ### 🛡️ Admin & Security
-
-- **Super Admin Panel:** A secure dashboard to update official NBA results and sync live standings.
-- **Authentication:** Secure email/password login via Supabase Auth.
+- **Super Admin Panel:** A secure dashboard to update official NBA results.
 - **Row Level Security (RLS):** Ensures users can only modify their own predictions.
-- **Locking Mechanism:** Leagues can be locked by the admin to prevent changes after the playoffs start.
+- **Locking Mechanism:** Leagues can be locked to prevent changes after tip-off.
 
 ## 🛠️ Tech Stack
 
 - **Frontend:** React (Vite), TypeScript
+- **Mobile Runtime:** Capacitor (Android)
 - **Styling:** Tailwind CSS (Dark Mode aesthetic)
 - **State Management:** React Hooks
 - **Backend / DB:** Supabase (PostgreSQL)
 - **Authentication:** Supabase Auth
-- **Drag & Drop:** `@hello-pangea/dnd`
-- **Deployment:** Vercel
+- **Tools:** Android Studio, Prettier, ESLint
 
 ## 🚀 Getting Started
 
-Follow these steps to run the project locally.
+Follow these steps to run the project locally or build for Android.
 
 ### Prerequisites
-
-- Node.js (v18 or higher)
-- npm or yarn
+- Node.js (v18+)
+- Android Studio (for mobile builds)
 
 ### Installation
 
 1.  **Clone the repo**
-
     ```sh
     git clone [https://github.com/harel3782/nba-app.git](https://github.com/harel3782/nba-app.git)
     cd nba-app
     ```
 
 2.  **Install dependencies**
-
     ```sh
     npm install
     ```
 
 3.  **Environment Variables**
-    Create a `.env` file in the root directory and add your Supabase credentials:
-
+    Create a `.env` file in the root directory:
     ```env
     VITE_SUPABASE_URL=your_supabase_url
     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
     ```
 
-4.  **Run the App**
-    ```sh
-    npm run dev
-    ```
-
-## 📐 Database Schema
-
-The project uses a normalized PostgreSQL schema hosted on Supabase:
-
-- `users`: Managed by Supabase Auth.
-- `leagues`: Stores league settings (name, scoring type, lock date).
-- `league_members`: Links users to leagues.
-- `predictions`: Stores regular season ranking predictions.
-- `tournament_predictions`: Stores bracket picks (Play-in to Finals).
-- `official_standings` & `official_playoff_results`: The "Truth" tables updated by the Admin.
-- `leaderboard`: A materialised table updated via Triggers for performance.
-
-## 📸 Screenshots
-
-|         Dashboard         |          Bracket          |
-| :-----------------------: | :-----------------------: |
-| _(Place screenshot here)_ | _(Place screenshot here)_ |
-
-## 👤 Author
-
-**Harel Mashiah**
-
-- Project Link: [https://github.com/your-username/nba-predictor](https://github.com/harel3782/nba-app)
+### 🖥️ Run on Web
+```sh
+npm run dev
