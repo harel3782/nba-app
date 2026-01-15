@@ -10,8 +10,8 @@ import { AdminResultsControl } from './AdminResultsControl';
 import { AdminStandingsMonitor } from './AdminStandingsMonitor';
 import { LeaderboardTable } from './LeaderboardTable';
 import type { Session } from '@supabase/supabase-js';
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { Capacitor } from '@capacitor/core';  
+// import { StatusBar, Style } from '@capacitor/status-bar';
+// import { Capacitor } from '@capacitor/core';  
 
 // --- Super Admin Configuration ---
 const SUPER_ADMIN_EMAIL = "harel.mashiah@gmail.com"; 
