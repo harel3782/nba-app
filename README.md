@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="public/logo.png" alt="NBA Predictor Logo" width="192" height="192" />
+  <img src="public/logo.png" alt="NBA Predictor Logo" width="120" height="120" />
 
 # 🏀 NBA Playoff Predictor
 
@@ -77,7 +77,7 @@ Follow these steps to run the project locally or build for Android.
 
 1.  **Clone the repo**
     ```sh
-    git clone https://github.com/harel3782/nba-app.git
+    git clone [https://github.com/harel3782/nba-app.git](https://github.com/harel3782/nba-app.git)
     cd nba-app
     ```
 
@@ -92,9 +92,53 @@ Follow these steps to run the project locally or build for Android.
     ```env
     VITE_SUPABASE_URL=your_supabase_url
     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    
+    # The email address that will have Super Admin access
     VITE_SUPER_ADMIN_EMAIL=your_admin_email@gmail.com
     ```
 
 ### 🖥️ Run on Web
 ```sh
 npm run dev
+
+### 🤖 Build for Android
+To generate the APK for mobile devices:
+
+1.  **Build the web assets:**
+    ```sh
+    npm run build
+    ```
+
+2.  **Sync with Capacitor:**
+    ```sh
+    npx cap sync
+    ```
+
+3.  **Open in Android Studio:**
+    ```sh
+    npx cap open android
+    ```
+    *From here, connect your device and click "Run" (▶️) or Build > Build APK.*
+
+## 📐 Database Schema
+
+The project uses a normalized PostgreSQL schema hosted on Supabase:
+
+- `users`: Managed by Supabase Auth.
+- `leagues`: Stores league settings & lock status.
+- `predictions`: Stores regular season ranking predictions.
+- `tournament_predictions`: Stores bracket picks (Play-in to Finals).
+- `official_standings` & `official_playoff_results`: The "Truth" tables updated by Admin.
+- `leaderboard`: Materialized view for high-performance ranking.
+
+## 📸 Screenshots
+
+|         Mobile Login          |          Bracket Zoom          |
+| :---------------------------: | :----------------------------: |
+| *(Place screenshot here)* | *(Place screenshot here)* |
+
+## 👤 Author
+
+**Harel Mashiah**
+
+- Project Link: [https://github.com/harel3782/nba-app](https://github.com/harel3782/nba-app)
