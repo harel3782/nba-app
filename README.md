@@ -65,6 +65,12 @@ Originally a web app, it has been evolved into a **Native Android Application** 
 - **Authentication:** Supabase Auth
 - **Tools:** Android Studio, Prettier, ESLint
 
+## 📥 Download Android App
+
+**An APK file is included in this repository!** 📱
+
+You can download the `NBA-Predictor.apk` file directly from the files above and install it on your Android device to get the full native experience.
+
 ## 🚀 Getting Started
 
 Follow these steps to run the project locally or build for Android.
