@@ -77,7 +77,7 @@ Follow these steps to run the project locally or build for Android.
 
 1.  **Clone the repo**
     ```sh
-    git clone [https://github.com/harel3782/nba-app.git](https://github.com/harel3782/nba-app.git)
+    git clone https://github.com/harel3782/nba-app.git
     cd nba-app
     ```
 
