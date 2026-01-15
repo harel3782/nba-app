@@ -12,7 +12,6 @@ interface Props {
 
 type Picks = Record<string, string>;
 
-// --- Dependency Map ---
 const DEPENDENCIES: Record<string, string[]> = {
 		'w_pi_7v8': ['w_pi_8th', 'w_r1_2'],
 		'w_pi_9v10': ['w_pi_8th'],
@@ -92,6 +91,9 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 	const [standings, setStandings] = useState<{ West: Team[], East: Team[] }>({ West: [], East: [] });
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
+	
+	// Default zoom slightly smaller for mobile
+	const [zoomLevel, setZoomLevel] = useState(0.8);
 
 	useEffect(() => {
 		loadData();
@@ -349,35 +351,14 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 	const champion = getTeam(picks['nba_finals']);
 
 	return (
-		// FIX: Changed container to allow scrolling (overflow-auto) and removed fixed height
-		<div className="w-full min-h-screen bg-[#0f172a] overflow-auto flex flex-col items-center pb-32">
+		<div className="w-full min-h-screen bg-[#0f172a] overflow-auto flex flex-col items-center relative">
 				
-				{/* FIX: Made the Save Button Sticky so it stays at the top */}
-				<div className="w-full flex justify-end px-8 py-2 z-50 bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5 sticky top-0">
-						<button
-								onClick={savePicks}
-								disabled={saving || isLocked}
-								className={`
-										px-6 py-2 rounded-full font-bold shadow-xl transition-all flex items-center gap-2 text-xs uppercase tracking-wider
-										${isLocked 
-												? 'bg-gray-600 text-gray-400 cursor-not-allowed border border-gray-500' 
-												: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white hover:scale-105 border border-green-400'}
-								`}
-						>
-								{isLocked ? (
-										<>🔒 Locked</>
-								) : (
-										saving ? (
-												<><span className="animate-spin">⌛</span> Saving...</>
-										) : (
-												<>💾 Save Bracket</>
-										)
-								)}
-						</button>
-				</div>
-
-				<div className="flex-1 w-full flex justify-center items-start pt-4 overflow-x-auto">
-						<div className="transform scale-[0.65] sm:scale-[0.70] md:scale-[0.75] xl:scale-[0.80] origin-top flex flex-col items-center gap-6">
+				{/* Bracket Container - Added padding bottom to prevent content hiding behind fixed bar */}
+				<div className="w-full flex justify-center overflow-x-auto overflow-y-hidden pt-4 pb-32">
+					<div 
+						style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }} 
+						className="flex flex-col items-center gap-6 transition-transform duration-200 ease-out"
+					>
 								
 								<div className="flex flex-row items-center justify-center gap-0">
 										<MainBracketSide conf="West" />
@@ -425,6 +406,40 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 										</div>
 								</div>
 						</div>
+				</div>
+
+				{/* --- FIXED BOTTOM BAR (Action Bar) --- */}
+				{/* Uses "safe-area-inset-bottom" for iPhone Home Bar */}
+				<div className="fixed bottom-0 w-full bg-[#1D428A]/95 backdrop-blur-md border-t border-white/10 p-4 flex justify-between items-center z-40 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+						
+						{/* Zoom Controls (Left) */}
+						<div className="flex items-center gap-2 bg-black/20 rounded-lg p-1 border border-white/10">
+							<button onClick={() => setZoomLevel(z => Math.max(0.3, z - 0.1))} className="w-10 h-10 flex items-center justify-center text-white bg-white/10 rounded hover:bg-white/20 font-bold active:scale-90 transition-transform">-</button>
+							<span className="text-xs font-mono text-gray-300 w-10 text-center font-bold">{(zoomLevel * 100).toFixed(0)}%</span>
+							<button onClick={() => setZoomLevel(z => Math.min(1.5, z + 0.1))} className="w-10 h-10 flex items-center justify-center text-white bg-white/10 rounded hover:bg-white/20 font-bold active:scale-90 transition-transform">+</button>
+						</div>
+
+						{/* Save Button (Right) */}
+						<button
+								onClick={savePicks}
+								disabled={saving || isLocked}
+								className={`
+										px-6 py-3 rounded-xl font-bold shadow-xl transition-all flex items-center gap-2 text-sm uppercase tracking-wider
+										${isLocked 
+												? 'bg-gray-600 text-gray-400 cursor-not-allowed border border-gray-500' 
+												: 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white active:scale-95 border border-white/20'}
+								`}
+						>
+								{isLocked ? (
+										<>🔒 Locked</>
+								) : (
+										saving ? (
+												<><span className="animate-spin">⌛</span> Saving...</>
+										) : (
+												<>💾 Save</>
+										)
+								)}
+						</button>
 				</div>
 		</div>
 	);
