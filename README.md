@@ -77,8 +77,7 @@ Follow these steps to run the project locally or build for Android.
 
 ### Prerequisites
 - Node.js (v18+)
-- Android Studio (for mobile builds)
-
+  
 ### Installation
 
 1.  **Clone the repo**
