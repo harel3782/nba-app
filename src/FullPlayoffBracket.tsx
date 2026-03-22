@@ -13,8 +13,8 @@ interface Props {
 export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props) {
 	const [predictions, setPredictions] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(true);
+	const [zoom, setZoom] = useState(0.85);
 
-	// Get team data directly from your teams.ts file
 	const getTeam = (id: string) => NBA_TEAMS.find(t => t.id === id);
 
 	useEffect(() => {
@@ -44,7 +44,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		const newPredictions = { ...predictions };
 		newPredictions[`${stageId}_${gameIndex}`] = teamId;
 
-		// Cascade reset: If an early winner is changed, clear their future path
+		// Cascade reset for future rounds
 		const path = ['first_round', 'conf_semis', 'conf_finals', 'finals', 'champion'];
 		const currentStageIdx = path.indexOf(stageId);
 		for (let i = currentStageIdx + 1; i < path.length; i++) {
@@ -75,13 +75,14 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		}
 	};
 
-	const renderMatchup = (stageId: string, gameIndex: number, teamAId: string | null, teamBId: string | null) => {
+	// FIX: Added width as a 5th parameter to the definition to fix TS2554
+	const renderMatchup = (stageId: string, gameIndex: number, teamAId: string | null, teamBId: string | null, width = "w-40") => {
 		const winnerId = predictions[`${stageId}_${gameIndex}`];
 		const teamA = teamAId ? getTeam(teamAId) : null;
 		const teamB = teamBId ? getTeam(teamBId) : null;
 
 		return (
-			<div className="flex flex-col gap-[2px] w-40 bg-black/60 border border-white/10 rounded-lg overflow-hidden shadow-xl z-20">
+			<div className={`flex flex-col gap-[2px] ${width} bg-black/60 border border-white/10 rounded-lg overflow-hidden shadow-xl z-20`}>
 				{[teamA, teamB].map((team, idx) => (
 					<button
 						key={idx}
@@ -115,18 +116,17 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 	return (
 		<div className="w-full h-[85vh] flex flex-col items-center justify-center bg-[#0a0f1a] overflow-hidden p-4 relative">
 			
-			{/* CONNECTOR LINES LAYER (SVG) */}
+			{/* SVG BRACKET LINES */}
 			<svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
 				<g fill="none" stroke="white" strokeWidth="1.5">
-					{/* West Lines */}
+					{/* West Connections */}
 					<path d="M 220 120 L 260 120 L 260 170 L 300 170" />
 					<path d="M 220 220 L 260 220 L 260 170 L 300 170" />
 					<path d="M 220 380 L 260 380 L 260 430 L 300 430" />
 					<path d="M 220 480 L 260 480 L 260 430 L 300 430" />
 					<path d="M 460 170 L 500 170 L 500 300 L 540 300" />
 					<path d="M 460 430 L 500 430 L 500 300 L 540 300" />
-
-					{/* East Lines */}
+					{/* East Connections */}
 					<path d="M 1180 120 L 1140 120 L 1140 170 L 1100 170" />
 					<path d="M 1180 220 L 1140 220 L 1140 170 L 1100 170" />
 					<path d="M 1180 380 L 1140 380 L 1140 430 L 1100 430" />
@@ -136,10 +136,12 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 				</g>
 			</svg>
 
-			{/* THE BRACKET GRID */}
-			<div className="flex items-center gap-10 w-full max-w-[1400px] h-full">
-				
-				{/* WEST CONFERENCE */}
+			{/* FIX: Using motion.div to satisfy the 'motion' import error TS6133 */}
+			<motion.div 
+				className="flex items-center gap-10 w-full max-w-[1400px] h-full"
+				animate={{ scale: zoom }}
+			>
+				{/* WEST */}
 				<div className="flex items-center gap-12">
 					<div className="flex flex-col gap-10">
 						<span className="text-[8px] font-bold text-blue-500/50 uppercase text-center mb-2">First Round</span>
@@ -154,12 +156,12 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						{renderMatchup('conf_semis', 1, predictions['first_round_2'], predictions['first_round_3'])}
 					</div>
 					<div>
-						<span className="text-[8px] font-bold text-blue-500/50 uppercase text-center mb-2">W. Finals</span>
+						<span className="text-[8px] font-bold text-blue-500/50 uppercase text-center mb-2">Finals</span>
 						{renderMatchup('conf_finals', 0, predictions['conf_semis_0'], predictions['conf_semis_1'])}
 					</div>
 				</div>
 
-				{/* CENTERPIECE: NBA FINALS */}
+				{/* CENTER */}
 				<div className="flex-1 flex flex-col items-center gap-12 pt-10">
 					<div className="text-center">
 						<div className="inline-block px-4 py-1 rounded-full border border-orange-500/30 bg-orange-500/5 text-[9px] font-black text-orange-500 uppercase tracking-[0.4em] mb-4 italic">The Finals</div>
@@ -177,7 +179,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						>
 							{predictions['champion_0'] ? (
 								<>
-									<img src={getTeam(predictions['champion_0'])?.logo} alt="" className="w-24 h-24 object-contain z-10 animate-bounce" />
+									<img src={getTeam(predictions['champion_0'])?.logo} alt="" className="w-24 h-24 object-contain z-10 animate-pulse" />
 									<div className="absolute inset-0 bg-yellow-500/10 blur-3xl rounded-full" />
 								</>
 							) : (
@@ -187,7 +189,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 					</div>
 				</div>
 
-				{/* EAST CONFERENCE */}
+				{/* EAST */}
 				<div className="flex items-center gap-12 flex-row-reverse">
 					<div className="flex flex-col gap-10">
 						<span className="text-[8px] font-bold text-red-500/50 uppercase text-center mb-2">First Round</span>
@@ -202,15 +204,15 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						{renderMatchup('conf_semis', 3, predictions['first_round_6'], predictions['first_round_7'])}
 					</div>
 					<div>
-						<span className="text-[8px] font-bold text-red-500/50 uppercase text-center mb-2">E. Finals</span>
+						<span className="text-[8px] font-bold text-red-500/50 uppercase text-center mb-2">Finals</span>
 						{renderMatchup('conf_finals', 1, predictions['conf_semis_2'], predictions['conf_semis_3'])}
 					</div>
 				</div>
+			</motion.div>
 
-			</div>
-
-			{/* BOTTOM BAR: SAVE BUTTON */}
-			<div className="mt-auto pb-4 w-full flex justify-center">
+			{/* BOTTOM BAR */}
+			<div className="mt-auto pb-4 w-full flex justify-center gap-4">
+				<button onClick={() => setZoom(z => Math.max(z - 0.05, 0.5))} className="bg-white/5 border border-white/10 text-white px-4 py-2 rounded-lg font-bold hover:bg-white/10">−</button>
 				<button 
 					onClick={handleSave} 
 					disabled={isLocked || loading} 
@@ -218,6 +220,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 				>
 					{loading ? 'SAVING...' : 'SAVE BRACKET'}
 				</button>
+				<button onClick={() => setZoom(z => Math.min(z + 0.05, 1.2))} className="bg-white/5 border border-white/10 text-white px-4 py-2 rounded-lg font-bold hover:bg-white/10">+</button>
 			</div>
 		</div>
 	);
