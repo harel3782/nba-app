@@ -31,9 +31,9 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 				.eq('league_id', leagueId);
 
 			const newStandings = { West: [] as string[], East: [] as string[] };
-			standingsData?.forEach((row: { conference: 'West' | 'East'; rankings: string[] }) => {
+			standingsData?.forEach((row: { conference: string; rankings: string[] }) => {
 				if (row.conference === 'West' || row.conference === 'East') {
-					newStandings[row.conference] = row.rankings;
+					newStandings[row.conference as 'West' | 'East'] = row.rankings;
 				}
 			});
 			setStandings(newStandings);
@@ -61,7 +61,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		const nextBracket = { ...bracket };
 		nextBracket[`${stageId}_${gameIndex}`] = teamId;
 
-		// Reset logic: If an early winner changes, clear their path forward
+		// Reset logic: Clear forward path if a winner changes
 		const sequence = ['playin', 'first_round', 'conf_semis', 'conf_finals', 'finals', 'champion'];
 		const startIdx = sequence.indexOf(stageId);
 		for (let i = startIdx + 1; i < sequence.length; i++) {
@@ -119,7 +119,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 
 	if (loading) return <div className="p-20 text-center text-orange-500 font-black">SYNCING STANDINGS...</div>;
 
-	// Play-In Logic: Determining Seed 7 and Seed 8 candidates
+	// Helper for Play-In logic
 	const getPlayInWinner = (gameId: string) => bracket[gameId] || null;
 	const getPlayInLoser = (gameId: string, teamA: string, teamB: string) => {
 		const winner = bracket[gameId];
@@ -127,61 +127,59 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		return winner === teamA ? teamB : teamA;
 	};
 
-	// West Play-In
-	const westWinner78 = getPlayInWinner('playin_w1'); // Becomes Seed 7
+	// West Play-In Logic
+	const westWinner78 = getPlayInWinner('playin_w1');
 	const westLoser78 = getPlayInLoser('playin_w1', standings.West[6], standings.West[7]);
 	const westWinner910 = getPlayInWinner('playin_w2');
-	const westSeed8 = getPlayInWinner('playin_w3'); // Becomes Seed 8
+	const westSeed8 = getPlayInWinner('playin_w3');
 
-	// East Play-In
-	const eastWinner78 = getPlayInWinner('playin_e1'); // Becomes Seed 7
+	// East Play-In Logic
+	const eastWinner78 = getPlayInWinner('playin_e1');
 	const eastLoser78 = getPlayInLoser('playin_e1', standings.East[6], standings.East[7]);
 	const eastWinner910 = getPlayInWinner('playin_e2');
-	const eastSeed8 = getPlayInWinner('playin_e3'); // Becomes Seed 8
+	const eastSeed8 = getPlayInWinner('playin_e3');
 
 	return (
 		<div className="w-full flex flex-col items-center bg-[#0a0f1a] pb-24 px-4 overflow-x-hidden">
 			
-			{/* FULL PLAY-IN TOURNAMENT GRID */}
-			<div className="w-full max-w-6xl bg-white/5 border border-white/5 rounded-3xl p-6 mb-16">
+			{/* PLAY-IN TOURNAMENT SECTION */}
+			<div className="w-full max-w-5xl bg-white/5 border border-white/5 rounded-3xl p-6 mb-16">
 				<div className="text-[10px] font-black text-center text-gray-500 uppercase tracking-[0.5em] mb-8">NBA Play-In Tournament</div>
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-					{/* West Play-In */}
 					<div className="flex flex-col gap-6">
-						<span className="text-[9px] font-black text-blue-500/40 uppercase text-center italic">Western Conference</span>
+						<span className="text-[9px] font-black text-blue-500/40 uppercase text-center italic">West Play-In</span>
 						<div className="flex items-center justify-center gap-6">
 							<div className="flex flex-col gap-4">
 								{renderMatchup('playin_w1', 0, standings.West[6], standings.West[7], "7 vs 8 (Winner is #7)")}
-								{renderMatchup('playin_w2', 0, standings.West[8], standings.West[9], "9 vs 10 (Winner to Game 3)")}
+								{renderMatchup('playin_w2', 0, standings.West[8], standings.West[9], "9 vs 10")}
 							</div>
 							<div className="pt-8">
-								{renderMatchup('playin_w3', 0, westLoser78, westWinner910, "Game 3 (Winner is #8)")}
+								{renderMatchup('playin_w3', 0, westLoser78, westWinner910, "Winner is #8")}
 							</div>
 						</div>
 					</div>
-					{/* East Play-In */}
 					<div className="flex flex-col gap-6">
-						<span className="text-[9px] font-black text-red-500/40 uppercase text-center italic">Eastern Conference</span>
+						<span className="text-[9px] font-black text-red-500/40 uppercase text-center italic">East Play-In</span>
 						<div className="flex items-center justify-center gap-6 flex-row-reverse">
 							<div className="flex flex-col gap-4">
 								{renderMatchup('playin_e1', 0, standings.East[6], standings.East[7], "7 vs 8 (Winner is #7)")}
-								{renderMatchup('playin_e2', 0, standings.East[8], standings.East[9], "9 vs 10 (Winner to Game 3)")}
+								{renderMatchup('playin_e2', 0, standings.East[8], standings.East[9], "9 vs 10")}
 							</div>
 							<div className="pt-8">
-								{renderMatchup('playin_e3', 0, eastLoser78, eastWinner910, "Game 3 (Winner is #8)")}
+								{renderMatchup('playin_e3', 0, eastLoser78, eastWinner910, "Winner is #8")}
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* MAIN PLAYOFF BRACKET */}
-			<div className="w-full overflow-x-auto no-scrollbar">
-				<div className="min-w-max mx-auto px-12">
-					<div className="flex items-center gap-12">
+			{/* MAIN TOURNAMENT BRACKET */}
+			<div className="w-full overflow-x-auto no-scrollbar flex justify-center">
+				<div className="inline-block min-w-max mx-auto px-4 md:px-12">
+					<div className="flex items-center gap-10">
 						
 						{/* WEST CONFERENCE */}
-						<div className="flex items-center gap-10">
+						<div className="flex items-center gap-8">
 							<div className="flex flex-col gap-6">
 								{renderMatchup('first_round', 0, standings.West[0], westWinner78, "1 vs #7 Seed")}
 								{renderMatchup('first_round', 1, standings.West[3], standings.West[4], "4 vs 5")}
@@ -197,15 +195,15 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 							</div>
 						</div>
 
-						{/* CENTER: NBA FINALS */}
+						{/* CENTERPIECE: THE FINALS */}
 						<div className="flex flex-col items-center gap-20 px-12">
 							<div className="text-center">
-								<div className="px-6 py-2 rounded-full border border-orange-500/20 bg-orange-500/5 text-xs font-black text-orange-500 uppercase tracking-widest mb-8">NBA Finals</div>
+								<div className="px-6 py-2 rounded-full border border-orange-500/20 bg-orange-500/5 text-xs font-black text-orange-500 uppercase tracking-widest mb-8 italic">NBA Finals</div>
 								{renderMatchup('finals', 0, bracket['conf_finals_0'], bracket['conf_finals_1'])}
 							</div>
 							<div 
 								onClick={() => !isLocked && bracket['finals_0'] && handlePick('champion', 0, bracket['finals_0'])}
-								className={`w-48 h-48 rounded-full border-4 flex items-center justify-center transition-all cursor-pointer shadow-[0_0_50px_rgba(0,0,0,0.5)] ${
+								className={`w-48 h-48 rounded-full border-4 flex items-center justify-center transition-all cursor-pointer shadow-2xl ${
 									bracket['champion_0'] ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/10 bg-black/40 hover:border-white/20'
 								}`}
 							>
