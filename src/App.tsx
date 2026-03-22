@@ -28,7 +28,6 @@ function App() {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [showAdminPanel, setShowAdminPanel] = useState(false);
 	const [activeTab, setActiveTab] = useState<'standings' | 'playoffs'>('standings');
-	const [loading, setLoading] = useState(false);
 	const [copySuccess, setCopySuccess] = useState(false);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
 	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
