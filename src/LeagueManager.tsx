@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './supabaseClient';
 
 interface League {
@@ -14,12 +15,23 @@ interface Props {
 
 export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props) {
 	const [leagues, setLeagues] = useState<League[]>([]);
+	const [isOpen, setIsOpen] = useState(false);
 	const [newLeagueName, setNewLeagueName] = useState('');
 	const [joinLeagueId, setJoinLeagueId] = useState('');
 	const [loading, setLoading] = useState(false);
+	const dropdownRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		fetchLeagues();
+		
+		// Close dropdown when clicking outside
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+				setIsOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [userId]);
 
 	async function fetchLeagues() {
@@ -33,6 +45,8 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props
 			setLeagues(formatted);
 		}
 	}
+
+	const selectedLeague = leagues.find(l => l.id === currentLeagueId);
 
 	async function createLeague() {
 		if (!newLeagueName.trim()) return;
@@ -77,30 +91,60 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props
 	return (
 		<div className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl">
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				{/* League Selection Dropdown */}
-				<div>
+				
+				{/* CUSTOM DROPDOWN - Fixed "White on White" issue */}
+				<div className="relative" ref={dropdownRef}>
 					<label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
 						My Active Leagues
 					</label>
-					<div className="relative">
-						<select 
-							value={currentLeagueId || ''} 
-							onChange={(e) => onLeagueChange(e.target.value)}
-							// FIX: Explicit bg-slate-900 and text-white to prevent browser defaults
-							className="w-full bg-[#0f172a] border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer"
-						>
-							<option value="" className="bg-[#0f172a] text-gray-400">Select a League</option>
-							{leagues.map((l) => (
-								<option key={l.id} value={l.id} className="bg-[#0f172a] text-white">
-									{l.name}
-								</option>
-							))}
-						</select>
-						{/* Custom arrow so it doesn't look like a standard Windows/Mac dropdown */}
-						<div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-xs">
+					
+					<button
+						onClick={() => setIsOpen(!isOpen)}
+						className="w-full bg-[#0f172a] border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-left flex justify-between items-center hover:border-orange-500 transition-all"
+					>
+						<span className="truncate">
+							{selectedLeague ? selectedLeague.name : 'Select a League'}
+						</span>
+						<span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
 							▼
-						</div>
-					</div>
+						</span>
+					</button>
+
+					<AnimatePresence>
+						{isOpen && (
+							<motion.div
+								initial={{ opacity: 0, y: -10 }}
+								animate={{ opacity: 1, y: 4 }}
+								exit={{ opacity: 0, y: -10 }}
+								className="absolute z-[100] w-full bg-[#0f172a] border border-white/20 rounded-xl overflow-hidden shadow-2xl mt-1"
+							>
+								{leagues.length === 0 ? (
+									<div className="px-4 py-3 text-gray-500 text-xs italic text-center">
+										No leagues found...
+									</div>
+								) : (
+									<div className="max-h-60 overflow-y-auto">
+										{leagues.map((league) => (
+											<button
+												key={league.id}
+												onClick={() => {
+													onLeagueChange(league.id);
+													setIsOpen(false);
+												}}
+												className={`w-full px-4 py-3 text-left text-sm font-bold transition-colors border-b border-white/5 last:border-0 ${
+													currentLeagueId === league.id 
+														? 'bg-orange-500 text-white' 
+														: 'text-gray-300 hover:bg-white/10'
+												}`}
+											>
+												{league.name}
+											</button>
+										))}
+									</div>
+								)}
+							</motion.div>
+						)}
+					</AnimatePresence>
 				</div>
 
 				{/* Create Section */}
