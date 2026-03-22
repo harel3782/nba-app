@@ -192,11 +192,11 @@ function App() {
 
 				<div className="w-full mb-6">
 					<LeagueManager
-						key={`${session.user.id}-${refreshTrigger}`}
-						userId={session.user.id}
-						currentLeagueId={currentLeagueId}
-						onLeagueChange={(id) => setCurrentLeagueId(id)}
-					/>
+                        key={`${session.user.id}-${refreshTrigger}`} 
+                        userId={session.user.id}
+                        currentLeagueId={currentLeagueId}
+                        onLeagueChange={(id) => setCurrentLeagueId(id)}
+                    />
 				</div>
 
 				{currentLeagueId && leagueDetails ? (

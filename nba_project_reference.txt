@@ -14120,9 +14120,6 @@ import { AdminStandingsMonitor } from './AdminStandingsMonitor';
 import { LeaderboardTable } from './LeaderboardTable';
 import type { Session } from '@supabase/supabase-js';
 
-// import { StatusBar, Style } from '@capacitor/status-bar';
-// import { Capacitor } from '@capacitor/core';
-
 interface LeagueDetails {
 	id: string;
 	name: string;
@@ -14133,35 +14130,26 @@ interface LeagueDetails {
 
 function App() {
 	const [session, setSession] = useState<Session | null>(null);
-
 	const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(null);
 	const [leagueDetails, setLeagueDetails] = useState<LeagueDetails | null>(null);
-
 	const [displayName, setDisplayName] = useState('');
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
 	const [showAdminPanel, setShowAdminPanel] = useState(false);
-
 	const [activeTab, setActiveTab] = useState<'standings' | 'playoffs'>('standings');
 	const [loading, setLoading] = useState(false);
 	const [copySuccess, setCopySuccess] = useState(false);
-
-	// --- Refresh Trigger State ---
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
-	// New state to show global saving indicator (optional)
 	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
 
-	// Auth Effect
+	// Auth Initialization
 	useEffect(() => {
 		supabase.auth.getSession().then(({ data: { session } }) => {
 			setSession(session);
 			if (session) updateLocalName(session);
 		});
 
-		const {
-			data: { subscription },
-		} = supabase.auth.onAuthStateChange((_event, session) => {
+		const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
 			setSession(session);
 			if (session) {
 				updateLocalName(session);
@@ -14192,33 +14180,35 @@ function App() {
 	async function fetchLeagueData(leagueId: string) {
 		setLoading(true);
 		try {
-			const { data: leagueData, error: leagueError } = await supabase
+			const { data, error } = await supabase
 				.from('leagues')
 				.select('*')
 				.eq('id', leagueId)
 				.single();
-
-			if (leagueError) throw leagueError;
-			setLeagueDetails(leagueData);
-		} catch (error) {
-			console.error('Error fetching league data:', error);
+			if (error) throw error;
+			setLeagueDetails(data);
+		} catch (err) {
+			console.error('Error fetching league:', err);
 		} finally {
 			setLoading(false);
 		}
 	}
 
-	// --- FIX: Added Delay ---
+	// Handles global UI refresh after saves
 	const handleSaveSuccess = () => {
-	// Start the global loading animation
-	setIsUpdatingScores(true); 
+		setIsUpdatingScores(true);
+		setTimeout(() => {
+			setRefreshTrigger((prev) => prev + 1);
+			setIsUpdatingScores(false);
+		}, 1000);
+	};
 
-	// Wait 1000ms for Supabase DB Triggers to finalize calculations
-	setTimeout(() => {
-		// Incrementing this trigger forces LeaderboardTable to re-fetch data
-		setRefreshTrigger((prev) => prev + 1); 
-		setIsUpdatingScores(false);
-	}, 1000);
-};
+	// Clears state after a league is deleted
+	const handleDeleteLeague = () => {
+		setCurrentLeagueId(null);
+		setLeagueDetails(null);
+		setRefreshTrigger((prev) => prev + 1);
+	};
 
 	const copyToClipboard = () => {
 		if (currentLeagueId) {
@@ -14228,30 +14218,14 @@ function App() {
 		}
 	};
 
-	const isLeagueLocked = () => {
-		if (!leagueDetails?.lock_at) return false;
-		return new Date() > new Date(leagueDetails.lock_at);
-	};
-
 	if (!session) return <Auth />;
 
-	if (loading && !leagueDetails) {
-		return (
-			<div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-				<div className="animate-spin text-4xl">🏀</div>
-			</div>
-		);
-	}
-
 	const isLeagueAdmin = session.user.id === leagueDetails?.created_by;
-	
-	// --- התיקון כאן: בדיקה מול משתנה הסביבה בתוך הקומפוננטה ---
 	const isSuperAdmin = session.user.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
-	
-	const locked = isLeagueLocked();
+	const locked = leagueDetails?.lock_at ? new Date() > new Date(leagueDetails.lock_at) : false;
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-[#1D428A] to-[#002B5C] text-white font-sans selection:bg-orange-400 selection:text-black">
+		<div className="min-h-screen bg-gradient-to-br from-[#1D428A] to-[#002B5C] text-white font-sans selection:bg-orange-400">
 			<ProfileModal
 				isOpen={isProfileOpen}
 				onClose={() => setIsProfileOpen(false)}
@@ -14272,61 +14246,39 @@ function App() {
 					currentName={leagueDetails.name}
 					currentLockDate={leagueDetails.lock_at}
 					currentScoringType={leagueDetails.scoring_type}
-					onUpdate={() => {fetchLeagueData(leagueDetails.id)
+					onUpdate={() => {
+						fetchLeagueData(leagueDetails.id);
 						handleSaveSuccess();
-						}
-						
-					}
+					}}
+					onDelete={handleDeleteLeague}
 				/>
 			)}
 
-			{/* Header */}
 			<header className="border-b border-white/10 bg-[#1D428A]/90 backdrop-blur-md sticky top-0 z-50 shadow-lg">
 				<div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 					<div className="flex items-center gap-3">
-						<img
-							src="https://cdn.nba.com/logos/leagues/logo-nba.svg"
-							alt="NBA"
-							className="h-10 w-auto drop-shadow-md"
-						/>
-						<h1 className="text-xl font-black tracking-tighter uppercase italic text-white hidden sm:block">
+						<img src="/logo.png" alt="NBA" className="h-10 w-auto" />
+						<h1 className="text-xl font-black uppercase italic hidden sm:block">
 							Playoff <span className="text-orange-400">Predictor</span>
 						</h1>
 					</div>
 
 					<div className="flex items-center gap-4">
 						{isSuperAdmin && (
-							<button
+							<button 
 								onClick={() => setShowAdminPanel(!showAdminPanel)}
-								className={`
-									hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all border
-									${
-										showAdminPanel
-											? 'bg-red-600 text-white border-red-400 shadow-[0_0_15px_rgba(220,38,38,0.5)] animate-pulse'
-											: 'bg-black/30 text-gray-400 border-white/10 hover:bg-black/50 hover:text-white'
-									}
-								`}
+								className={`px-3 py-1.5 rounded-lg font-bold text-[10px] border transition-all ${showAdminPanel ? 'bg-red-600 border-red-400' : 'bg-black/30 border-white/10'}`}
 							>
 								{showAdminPanel ? 'Close Admin' : 'Admin Panel'}
 							</button>
 						)}
-
-						<button
-							onClick={() => setIsProfileOpen(true)}
-							className="flex items-center gap-3 group hover:bg-white/5 p-1 rounded-full pr-3 transition-all border border-transparent hover:border-white/10"
-						>
-							<div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center font-bold shadow-lg border border-white/10">
+						<button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-white/5 border border-transparent hover:border-white/10">
+							<div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center font-bold">
 								{displayName.charAt(0).toUpperCase()}
 							</div>
-							<span className="text-sm font-bold text-white group-hover:text-orange-300 hidden sm:block">
-								{displayName}
-							</span>
+							<span className="text-sm font-bold hidden sm:block">{displayName}</span>
 						</button>
-
-						<button
-							onClick={() => supabase.auth.signOut()}
-							className="bg-white/10 hover:bg-red-600/80 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all ml-2"
-						>
+						<button onClick={() => supabase.auth.signOut()} className="bg-white/10 hover:bg-red-600 text-xs font-bold py-2 px-3 rounded-lg">
 							Log Out
 						</button>
 					</div>
@@ -14334,53 +14286,22 @@ function App() {
 			</header>
 
 			<main className="max-w-7xl mx-auto p-4 md:p-8 flex flex-col items-center">
-				{/* Global Updating Indicator */}
 				{isUpdatingScores && (
-					<div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-500/90 text-black px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 animate-bounce flex items-center gap-2">
-						<span className="animate-spin">⏳</span> Updating Scores...
+					<div className="fixed top-20 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-4 py-2 rounded-full text-xs font-bold z-50 animate-bounce">
+						⏳ Updating Scores...
 					</div>
 				)}
 
 				{isSuperAdmin && showAdminPanel && (
-					<div className="w-full max-w-4xl mb-8 border-4 border-red-600 bg-gray-900 rounded-xl overflow-hidden shadow-2xl z-50 relative animate-fade-in">
-						<div className="bg-red-600 text-white text-center font-bold text-xs py-2 uppercase tracking-[0.2em]">
-							⚠️ Super Admin Control Panel ⚠️
-						</div>
-
-						<div className="p-6 flex flex-col gap-10">
-							<section>
-								<div className="mb-4 border-b border-gray-700 pb-2 flex justify-between items-center">
-									<h2 className="text-xl font-bold text-white">
-										1. Live Standings Monitor
-									</h2>
-									<span className="text-[10px] bg-green-900 text-green-300 px-2 py-1 rounded border border-green-700 font-bold tracking-wider">
-										● AUTO-SYNC ACTIVE
-									</span>
-								</div>
-								<p className="text-gray-400 text-xs mb-4">
-									Verifying data from your external script:
-								</p>
-								<AdminStandingsMonitor />
-							</section>
-
-							<section>
-								<div className="mb-4 border-b border-gray-700 pb-2">
-									<h2 className="text-xl font-bold text-white">
-										2. Playoff Results Controls
-									</h2>
-								</div>
-								<p className="text-gray-400 text-xs mb-4">
-									Click to mark official winners:
-								</p>
-								<AdminResultsControl />
-							</section>
-						</div>
+					<div className="w-full max-w-4xl mb-8 border-4 border-red-600 bg-gray-900 rounded-xl overflow-hidden p-6">
+						<AdminStandingsMonitor />
+						<AdminResultsControl />
 					</div>
 				)}
 
-				<div className="w-full mb-6 relative z-0">
+				<div className="w-full mb-6">
 					<LeagueManager
-						key={session.user.id}
+						key={`${session.user.id}-${refreshTrigger}`}
 						userId={session.user.id}
 						currentLeagueId={currentLeagueId}
 						onLeagueChange={(id) => setCurrentLeagueId(id)}
@@ -14389,90 +14310,44 @@ function App() {
 
 				{currentLeagueId && leagueDetails ? (
 					<>
-						<div className="w-full max-w-4xl flex justify-between items-end mb-4 px-2">
-							<div>
-								<h2 className="text-4xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg">
-									{leagueDetails.name}
-								</h2>
-								<div
-									onClick={copyToClipboard}
-									className="text-sm text-blue-300 cursor-pointer hover:text-white transition-colors flex items-center gap-2 mt-1"
-								>
+						<div className="w-full max-w-4xl flex justify-between items-end mb-4">
+							<div onClick={copyToClipboard} className="cursor-pointer">
+								<h2 className="text-4xl font-black uppercase italic">{leagueDetails.name}</h2>
+								<div className="text-sm text-blue-300 flex items-center gap-2">
 									<span>ID: {currentLeagueId}</span>
-									{copySuccess ? (
-										<span className="text-green-400 font-bold">✓ Copied</span>
-									) : (
-										<span>📋</span>
-									)}
+									{copySuccess && <span className="text-green-400">✓ Copied</span>}
 								</div>
 							</div>
-
 							{isLeagueAdmin && (
-								<button
-									onClick={() => setIsSettingsOpen(true)}
-									className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2"
-								>
+								<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 px-4 py-2 rounded-lg text-sm border border-white/10">
 									⚙️ League Settings
 								</button>
 							)}
 						</div>
 
-						<LeaderboardTable
-							leagueId={currentLeagueId}
-							currentUserId={session.user.id}
-							refreshTrigger={refreshTrigger}
-						/>
+						<LeaderboardTable leagueId={currentLeagueId} currentUserId={session.user.id} refreshTrigger={refreshTrigger} />
 
 						<div className="flex justify-center mb-6 gap-4 mt-8">
-							<button
-								onClick={() => setActiveTab('standings')}
-								className={`px-8 py-2 rounded-full font-bold uppercase tracking-wider transition-all ${activeTab === 'standings' ? 'bg-white text-blue-900 scale-105 shadow-lg' : 'bg-white/10 hover:bg-white/20'}`}
-							>
+							<button onClick={() => setActiveTab('standings')} className={`px-8 py-2 rounded-full font-bold ${activeTab === 'standings' ? 'bg-white text-blue-900' : 'bg-white/10'}`}>
 								Standings
 							</button>
-							<button
-								onClick={() => setActiveTab('playoffs')}
-								className={`px-8 py-2 rounded-full font-bold uppercase tracking-wider transition-all ${activeTab === 'playoffs' ? 'bg-orange-500 text-white scale-105 shadow-lg' : 'bg-white/10 hover:bg-white/20'}`}
-							>
+							<button onClick={() => setActiveTab('playoffs')} className={`px-8 py-2 rounded-full font-bold ${activeTab === 'playoffs' ? 'bg-orange-500 text-white' : 'bg-white/10'}`}>
 								Playoffs
 							</button>
 						</div>
 
 						{activeTab === 'standings' ? (
-							<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl animate-fade-in">
-								<div className="flex justify-center">
-									<BettingBoard
-										conference="West"
-										userId={session.user.id}
-										leagueId={currentLeagueId}
-										isLocked={locked}
-										onSave={handleSaveSuccess}
-									/>
-								</div>
-								<div className="flex justify-center">
-									<BettingBoard
-										conference="East"
-										userId={session.user.id}
-										leagueId={currentLeagueId}
-										isLocked={locked}
-										onSave={handleSaveSuccess}
-									/>
-								</div>
+							<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl">
+								<BettingBoard conference="West" userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} onSave={handleSaveSuccess} />
+								<BettingBoard conference="East" userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} onSave={handleSaveSuccess} />
 							</div>
 						) : (
-							<FullPlayoffBracket
-								userId={session.user.id}
-								leagueId={currentLeagueId}
-								isLocked={locked}
-								onSave={handleSaveSuccess}
-							/>
+							<FullPlayoffBracket userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} onSave={handleSaveSuccess} />
 						)}
 					</>
 				) : (
-					<div className="text-center py-20 text-white/50 animate-pulse">
-						<h3 className="text-2xl font-bold">
-							👈 Select or Create a League to Start
-						</h3>
+					<div className="text-center py-20 text-white/50">
+						<h3 className="text-2xl font-bold">👈 Select or Create a League to Start</h3>
 					</div>
 				)}
 			</main>
@@ -15829,190 +15704,105 @@ interface League {
 interface Props {
 	userId: string;
 	currentLeagueId: string | null;
-	// Change: The function now also receives a name
-	onLeagueChange: (leagueId: string, leagueName: string) => void;
+	onLeagueChange: (id: string) => void;
 }
 
 export function LeagueManager({ userId, currentLeagueId, onLeagueChange }: Props) {
-	const [myLeagues, setMyLeagues] = useState<League[]>([]);
+	const [leagues, setLeagues] = useState<League[]>([]);
 	const [newLeagueName, setNewLeagueName] = useState('');
-	const [joinCode, setJoinCode] = useState('');
-	const [activeTab, setActiveTab] = useState<'list' | 'create' | 'join'>('list');
+	const [joinLeagueId, setJoinLeagueId] = useState('');
+	const [loading, setLoading] = useState(false);
 
 	useEffect(() => {
-		fetchMyLeagues();
-	}, [userId]);
+		fetchLeagues();
+	}, [userId]); // refreshTrigger is handled by the "key" in App.tsx
 
-	async function fetchMyLeagues() {
-		const { data: membershipData } = await supabase
+	async function fetchLeagues() {
+		const { data, error } = await supabase
 			.from('league_members')
-			.select('league_id')
+			.select('leagues(id, name)')
 			.eq('user_id', userId);
 
-		if (membershipData && membershipData.length > 0) {
-			const leagueIds = membershipData.map((m) => m.league_id);
-
-			const { data: leaguesData } = await supabase
-				.from('leagues')
-				.select('*')
-				.in('id', leagueIds);
-
-			if (leaguesData) {
-				setMyLeagues(leaguesData);
-				// If no league is selected, select the first one
-				if (!currentLeagueId && leaguesData.length > 0) {
-					onLeagueChange(leaguesData[0].id, leaguesData[0].name);
-				}
-			}
+		if (!error && data) {
+			const formatted = data.map((item: any) => item.leagues).filter(Boolean);
+			setLeagues(formatted);
 		}
 	}
 
 	async function createLeague() {
-		if (!newLeagueName) return;
+		if (!newLeagueName.trim()) return;
+		setLoading(true);
+		try {
+			const { data, error } = await supabase
+				.from('leagues')
+				.insert({ name: newLeagueName, created_by: userId })
+				.select()
+				.single();
 
-		const { data: league, error } = await supabase
-			.from('leagues')
-			.insert({ name: newLeagueName, created_by: userId })
-			.select()
-			.single();
-
-		if (error) {
-			console.error(error);
-			alert('Error creating league');
-			return;
+			if (error) throw error;
+			await supabase.from('league_members').insert({ league_id: data.id, user_id: userId });
+			setNewLeagueName('');
+			fetchLeagues();
+			onLeagueChange(data.id);
+		} catch (err) {
+			console.error(err);
+		} finally {
+			setLoading(false);
 		}
-
-		await supabase.from('league_members').insert({
-			league_id: league.id,
-			user_id: userId,
-		});
-
-		await fetchMyLeagues();
-		onLeagueChange(league.id, league.name); // Also updates name
-		setActiveTab('list');
-		setNewLeagueName('');
 	}
 
 	async function joinLeague() {
-		if (!joinCode) return;
-
-		// First, get the league name to ensure it exists
-		const { data: league, error: leagueError } = await supabase
-			.from('leagues')
-			.select('name')
-			.eq('id', joinCode)
-			.single();
-
-		if (leagueError || !league) {
-			alert('League not found check code.');
-			return;
+		if (!joinLeagueId.trim()) return;
+		setLoading(true);
+		try {
+			const { error } = await supabase
+				.from('league_members')
+				.insert({ league_id: joinLeagueId, user_id: userId });
+			if (error) throw error;
+			setJoinLeagueId('');
+			fetchLeagues();
+			onLeagueChange(joinLeagueId);
+		} catch (err) {
+			alert('League not found or already joined');
+		} finally {
+			setLoading(false);
 		}
-
-		const { error } = await supabase.from('league_members').insert({
-			league_id: joinCode,
-			user_id: userId,
-		});
-
-		if (error && error.code !== '23505') {
-			// 23505 = already exists
-			alert('Could not join league.');
-			return;
-		}
-
-		await fetchMyLeagues();
-		onLeagueChange(joinCode, league.name); // Also updates name
-		setActiveTab('list');
-		setJoinCode('');
 	}
 
 	return (
-		<div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 mb-8 w-full max-w-4xl shadow-xl">
-			<div className="flex gap-2 border-b border-white/10 pb-4 mb-4 overflow-x-auto">
-				<button
-					onClick={() => setActiveTab('list')}
-					className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === 'list' ? 'bg-white text-[#1D428A]' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
-				>
-					My Leagues
-				</button>
-				<button
-					onClick={() => setActiveTab('create')}
-					className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === 'create' ? 'bg-white text-[#1D428A]' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
-				>
-					Create New
-				</button>
-				<button
-					onClick={() => setActiveTab('join')}
-					className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === 'join' ? 'bg-white text-[#1D428A]' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
-				>
-					Join via Code
-				</button>
-			</div>
-
-			{activeTab === 'list' && (
-				<div className="space-y-3">
-					{myLeagues.length === 0 ? (
-						<p className="text-white/60 text-center py-2">
-							You are not in any leagues yet.
-						</p>
-					) : null}
-					<div className="flex flex-wrap gap-3">
-						{myLeagues.map((l) => (
-							<button
-								key={l.id}
-								onClick={() => onLeagueChange(l.id, l.name)}
-								className={`px-5 py-3 rounded-lg border transition-all font-bold shadow-sm
-								${
-									currentLeagueId === l.id
-										? 'bg-orange-600 border-orange-500 text-white scale-105 shadow-orange-900/50'
-										: 'bg-white/5 border-white/10 text-white hover:bg-white/20'
-								}`}
-							>
-								{l.name}
-							</button>
+		<div className="bg-black/20 backdrop-blur-sm border border-white/10 p-6 rounded-2xl shadow-xl">
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+				<div>
+					<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">My Leagues</label>
+					<select 
+						value={currentLeagueId || ''} 
+						onChange={(e) => onLeagueChange(e.target.value)}
+						className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none"
+					>
+						<option value="">Select a League</option>
+						{leagues.map((l) => (
+							<option key={l.id} value={l.id}>{l.name}</option>
 						))}
+					</select>
+				</div>
+				<div>
+					<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Create League</label>
+					<div className="flex gap-2">
+						<input type="text" placeholder="Name" value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
+						<button onClick={createLeague} disabled={loading} className="bg-orange-500 px-4 rounded-xl font-bold text-xs">Create</button>
 					</div>
 				</div>
-			)}
-
-			{activeTab === 'create' && (
-				<div className="flex gap-2">
-					<input
-						type="text"
-						placeholder="New League Name..."
-						className="bg-black/20 border border-white/10 p-3 rounded-lg text-white flex-1 placeholder-white/40 focus:outline-none focus:border-orange-500"
-						value={newLeagueName}
-						onChange={(e) => setNewLeagueName(e.target.value)}
-					/>
-					<button
-						onClick={createLeague}
-						className="bg-green-500 hover:bg-green-600 text-white px-6 rounded-lg font-bold shadow-lg"
-					>
-						Create
-					</button>
+				<div>
+					<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Join with ID</label>
+					<div className="flex gap-2">
+						<input type="text" placeholder="League ID" value={joinLeagueId} onChange={(e) => setJoinLeagueId(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
+						<button onClick={joinLeague} disabled={loading} className="bg-white/10 px-4 rounded-xl font-bold text-xs border border-white/10">Join</button>
+					</div>
 				</div>
-			)}
-
-			{activeTab === 'join' && (
-				<div className="flex gap-2">
-					<input
-						type="text"
-						placeholder="Paste Code Here..."
-						className="bg-black/20 border border-white/10 p-3 rounded-lg text-white flex-1 placeholder-white/40 focus:outline-none focus:border-orange-500 font-mono"
-						value={joinCode}
-						onChange={(e) => setJoinCode(e.target.value)}
-					/>
-					<button
-						onClick={joinLeague}
-						className="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-lg font-bold shadow-lg"
-					>
-						Join
-					</button>
-				</div>
-			)}
+			</div>
 		</div>
 	);
 }
-
 
 ############################################################
 LOCATION: src\LeagueSettings.tsx
@@ -16127,29 +15917,25 @@ interface Props {
 	currentLockDate: string | null;
 	currentScoringType: string;
 	onUpdate: () => void;
+	onDelete: () => void;
 }
 
 export function LeagueSettingsModal({ 
-	isOpen, 
-	onClose, 
-	leagueId, 
-	currentName, 
-	currentLockDate, 
-	currentScoringType, 
-	onUpdate 
+	isOpen, onClose, leagueId, currentName, currentLockDate, currentScoringType, onUpdate, onDelete 
 }: Props) {
-	// Local state initialized with current props
 	const [name, setName] = useState(currentName);
 	const [lockDate, setLockDate] = useState(currentLockDate || '');
 	const [scoringType, setScoringType] = useState(currentScoringType);
 	const [loading, setLoading] = useState(false);
+	const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-	// Ensure state is synced if the component stays mounted but props change
+	// Reset state when props change
 	useEffect(() => {
 		setName(currentName);
 		setLockDate(currentLockDate || '');
 		setScoringType(currentScoringType);
-	}, [currentName, currentLockDate, currentScoringType]);
+		setShowConfirmDelete(false);
+	}, [currentName, currentLockDate, currentScoringType, isOpen]);
 
 	if (!isOpen) return null;
 
@@ -16158,18 +15944,28 @@ export function LeagueSettingsModal({
 		try {
 			const { error } = await supabase
 				.from('leagues')
-				.update({
-					name: name,
-					lock_at: lockDate || null,
-					scoring_type: scoringType
-				})
+				.update({ name, lock_at: lockDate || null, scoring_type: scoringType })
 				.eq('id', leagueId);
-
 			if (error) throw error;
 			onUpdate();
 			onClose();
-		} catch (error) {
-			console.error('Error updating league:', error);
+		} catch (err) {
+			console.error('Update error:', err);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleDelete = async () => {
+		setLoading(true);
+		try {
+			const { error } = await supabase.from('leagues').delete().eq('id', leagueId);
+			if (error) throw error;
+			onDelete();
+			onClose();
+		} catch (err) {
+			console.error('Delete error:', err);
+			alert('Failed to delete league.');
 		} finally {
 			setLoading(false);
 		}
@@ -16177,88 +15973,47 @@ export function LeagueSettingsModal({
 
 	return (
 		<div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-			<div className="bg-[#0f172a] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6">
-				{/* Header */}
-				<div className="flex items-center gap-2 mb-6">
-					<span className="text-xl text-gray-400">⚙️</span>
-					<h2 className="text-2xl font-bold text-white">League Settings</h2>
-				</div>
-
+			<div className="bg-[#0f172a] border border-white/10 rounded-2xl w-full max-w-md p-6">
+				<h2 className="text-2xl font-bold text-white mb-6">⚙️ League Settings</h2>
 				<div className="space-y-6">
-					{/* League Name Section */}
 					<div>
-						<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-							League Name
-						</label>
-						<input
-							type="text"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 transition-all"
-						/>
+						<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">League Name</label>
+						<input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white" />
 					</div>
-
-					{/* Scoring System Section (Boxes from your screenshot) */}
 					<div>
-						<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-							Scoring System
-						</label>
+						<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Scoring System</label>
 						<div className="grid grid-cols-2 gap-3">
-							<button
-								onClick={() => setScoringType('linear')}
-								className={`p-4 rounded-xl border text-center transition-all ${
-									scoringType === 'linear'
-										? 'bg-white/5 border-white/20'
-										: 'bg-black/20 border-white/5 opacity-40 hover:opacity-60'
-								}`}
-							>
-								<div className="font-bold text-sm text-white">Standard</div>
-								<div className="text-[10px] text-gray-400 mt-1">Linear Penalty (Abs Diff)</div>
+							<button onClick={() => setScoringType('linear')} className={`p-4 rounded-xl border ${scoringType === 'linear' ? 'bg-white/5 border-white/20' : 'bg-black/20 opacity-40'}`}>
+								<div className="font-bold text-white">Standard</div>
 							</button>
-
-							<button
-								onClick={() => setScoringType('squared')}
-								className={`p-4 rounded-xl border text-center transition-all ${
-									scoringType === 'squared'
-										? 'bg-red-600 border-red-400'
-										: 'bg-black/20 border-white/5 opacity-40 hover:opacity-60'
-								}`}
-							>
-								<div className="font-bold text-sm text-white">Strict (Squared)</div>
-								<div className="text-[10px] text-white/70 mt-1">Heavy Penalty for big misses</div>
+							<button onClick={() => setScoringType('squared')} className={`p-4 rounded-xl border ${scoringType === 'squared' ? 'bg-red-600 border-red-400' : 'bg-black/20 opacity-40'}`}>
+								<div className="font-bold text-white">Strict</div>
 							</button>
 						</div>
 					</div>
-
-					{/* Deadline Section */}
 					<div>
-						<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-							Predictions Deadline
-						</label>
-						<input
-							type="datetime-local"
-							value={lockDate}
-							onChange={(e) => setLockDate(e.target.value)}
-							className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 transition-all"
-						/>
+						<label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Predictions Deadline</label>
+						<input type="datetime-local" value={lockDate} onChange={(e) => setLockDate(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white" />
+					</div>
+					<div className="pt-4 border-t border-white/5">
+						{!showConfirmDelete ? (
+							<button onClick={() => setShowConfirmDelete(true)} className="text-[10px] font-bold text-red-500/50 hover:text-red-500 uppercase">🗑️ Delete League</button>
+						) : (
+							<div className="bg-red-950/30 border border-red-900 p-3 rounded-xl">
+								<p className="text-xs text-red-200 mb-3 text-center">Delete all data forever?</p>
+								<div className="flex gap-2">
+									<button onClick={handleDelete} className="flex-1 bg-red-600 text-white text-xs font-bold py-2 rounded-lg">Yes, Delete</button>
+									<button onClick={() => setShowConfirmDelete(false)} className="flex-1 bg-white/5 text-gray-400 text-xs font-bold py-2 rounded-lg">Cancel</button>
+								</div>
+							</div>
+						)}
 					</div>
 				</div>
-
-				{/* Actions */}
-				<div className="flex flex-col gap-3 mt-10">
-					<button
-						onClick={handleSave}
-						disabled={loading}
-						className="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white py-4 rounded-xl font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50"
-					>
+				<div className="flex flex-col gap-3 mt-8">
+					<button onClick={handleSave} disabled={loading} className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold shadow-lg">
 						{loading ? 'Saving...' : 'Save Settings'}
 					</button>
-					<button
-						onClick={onClose}
-						className="w-full py-3 text-sm font-bold text-gray-500 hover:text-white transition-colors"
-					>
-						Cancel
-					</button>
+					<button onClick={onClose} className="w-full py-2 text-sm font-bold text-gray-500">Close</button>
 				</div>
 			</div>
 		</div>

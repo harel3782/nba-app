@@ -51,13 +51,22 @@ export function LeagueSettingsModal({
 	const handleDelete = async () => {
 		setLoading(true);
 		try {
-			const { error } = await supabase.from('leagues').delete().eq('id', leagueId);
-			if (error) throw error;
-			onDelete();
+			const { error } = await supabase
+				.from('leagues')
+				.delete()
+				.eq('id', leagueId);
+
+			if (error) {
+				// This will tell us if it's an RLS permission error or a DB constraint error
+				console.error('Delete Error:', error);
+				alert(`Delete failed: ${error.message}`); 
+				return;
+			}
+
+			onDelete(); // This calls handleDeleteLeague in App.tsx
 			onClose();
-		} catch (err) {
-			console.error('Delete error:', err);
-			alert('Failed to delete league.');
+		} catch (error) {
+			console.error('Unexpected Error:', error);
 		} finally {
 			setLoading(false);
 		}
