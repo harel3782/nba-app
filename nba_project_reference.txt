@@ -14220,6 +14220,14 @@ function App() {
 
 	if (!session) return <Auth />;
 
+	if (loading && !leagueDetails) {
+		return (
+			<div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+				<div className="animate-spin text-4xl">🏀</div>
+			</div>
+		);
+	}
+
 	const isLeagueAdmin = session.user.id === leagueDetails?.created_by;
 	const isSuperAdmin = session.user.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
 	const locked = leagueDetails?.lock_at ? new Date() > new Date(leagueDetails.lock_at) : false;
@@ -14301,7 +14309,7 @@ function App() {
 
 				<div className="w-full mb-6">
 					<LeagueManager
-						key={`${session.user.id}-${refreshTrigger}`}
+						key={`${session.user.id}-${refreshTrigger}`} 
 						userId={session.user.id}
 						currentLeagueId={currentLeagueId}
 						onLeagueChange={(id) => setCurrentLeagueId(id)}
@@ -15959,13 +15967,22 @@ export function LeagueSettingsModal({
 	const handleDelete = async () => {
 		setLoading(true);
 		try {
-			const { error } = await supabase.from('leagues').delete().eq('id', leagueId);
-			if (error) throw error;
-			onDelete();
+			const { error } = await supabase
+				.from('leagues')
+				.delete()
+				.eq('id', leagueId);
+
+			if (error) {
+				// This will tell us if it's an RLS permission error or a DB constraint error
+				console.error('Delete Error:', error);
+				alert(`Delete failed: ${error.message}`); 
+				return;
+			}
+
+			onDelete(); // This calls handleDeleteLeague in App.tsx
 			onClose();
-		} catch (err) {
-			console.error('Delete error:', err);
-			alert('Failed to delete league.');
+		} catch (error) {
+			console.error('Unexpected Error:', error);
 		} finally {
 			setLoading(false);
 		}

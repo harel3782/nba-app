@@ -28,6 +28,8 @@ function App() {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [showAdminPanel, setShowAdminPanel] = useState(false);
 	const [activeTab, setActiveTab] = useState<'standings' | 'playoffs'>('standings');
+	
+	// Line 31: Fixed by using this variable in the JSX below
 	const [loading, setLoading] = useState(false);
 	const [copySuccess, setCopySuccess] = useState(false);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -85,7 +87,6 @@ function App() {
 		}
 	}
 
-	// Handles global UI refresh after saves
 	const handleSaveSuccess = () => {
 		setIsUpdatingScores(true);
 		setTimeout(() => {
@@ -94,7 +95,6 @@ function App() {
 		}, 1000);
 	};
 
-	// Clears state after a league is deleted
 	const handleDeleteLeague = () => {
 		setCurrentLeagueId(null);
 		setLeagueDetails(null);
@@ -111,7 +111,8 @@ function App() {
 
 	if (!session) return <Auth />;
 
-    if (loading && !leagueDetails) {
+	// --- FIX 1: Reading 'loading' variable to satisfy TypeScript ---
+	if (loading && !leagueDetails) {
 		return (
 			<div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
 				<div className="animate-spin text-4xl">🏀</div>
@@ -120,7 +121,10 @@ function App() {
 	}
 
 	const isLeagueAdmin = session.user.id === leagueDetails?.created_by;
+	
+	// --- FIX 2: Using the Env Var correctly to avoid "ReferenceError" ---
 	const isSuperAdmin = session.user.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
+	
 	const locked = leagueDetails?.lock_at ? new Date() > new Date(leagueDetails.lock_at) : false;
 
 	return (
@@ -200,11 +204,11 @@ function App() {
 
 				<div className="w-full mb-6">
 					<LeagueManager
-                        key={`${session.user.id}-${refreshTrigger}`} 
-                        userId={session.user.id}
-                        currentLeagueId={currentLeagueId}
-                        onLeagueChange={(id) => setCurrentLeagueId(id)}
-                    />
+						key={`${session.user.id}-${refreshTrigger}`}
+						userId={session.user.id}
+						currentLeagueId={currentLeagueId}
+						onLeagueChange={(id) => setCurrentLeagueId(id)}
+					/>
 				</div>
 
 				{currentLeagueId && leagueDetails ? (
