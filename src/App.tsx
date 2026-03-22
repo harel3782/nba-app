@@ -29,8 +29,7 @@ function App() {
 	const [showAdminPanel, setShowAdminPanel] = useState(false);
 	const [activeTab, setActiveTab] = useState<'standings' | 'playoffs'>('standings');
 	
-	// Line 31: Fixed by using this variable in the JSX below
-	const [loading, setLoading] = useState(false);
+	// FIX: Removed the 'loading' state variable that caused the build error (TS6133)
 	const [copySuccess, setCopySuccess] = useState(false);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
 	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
@@ -71,7 +70,7 @@ function App() {
 	}, [currentLeagueId]);
 
 	async function fetchLeagueData(leagueId: string) {
-		setLoading(true);
+		// FIX: Removed 'setLoading(true)'
 		try {
 			const { data, error } = await supabase
 				.from('leagues')
@@ -82,9 +81,8 @@ function App() {
 			setLeagueDetails(data);
 		} catch (err) {
 			console.error('Error fetching league:', err);
-		} finally {
-			setLoading(false);
 		}
+		// FIX: Removed 'setLoading(false)'
 	}
 
 	const handleSaveSuccess = () => {
@@ -111,18 +109,9 @@ function App() {
 
 	if (!session) return <Auth />;
 
-	// --- FIX 1: Reading 'loading' variable to satisfy TypeScript ---
-	if (loading && !leagueDetails) {
-		return (
-			<div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-				<div className="animate-spin text-4xl">🏀</div>
-			</div>
-		);
-	}
-
 	const isLeagueAdmin = session.user.id === leagueDetails?.created_by;
 	
-	// --- FIX 2: Using the Env Var correctly to avoid "ReferenceError" ---
+	// FIX: Accessing the Super Admin Email directly from environment variables
 	const isSuperAdmin = session.user.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
 	
 	const locked = leagueDetails?.lock_at ? new Date() > new Date(leagueDetails.lock_at) : false;
