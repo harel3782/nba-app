@@ -28,6 +28,7 @@ function App() {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [showAdminPanel, setShowAdminPanel] = useState(false);
 	const [activeTab, setActiveTab] = useState<'standings' | 'playoffs'>('standings');
+	const [loading, setLoading] = useState(false);
 	const [copySuccess, setCopySuccess] = useState(false);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
 	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
@@ -109,6 +110,14 @@ function App() {
 	};
 
 	if (!session) return <Auth />;
+
+    if (loading && !leagueDetails) {
+		return (
+			<div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+				<div className="animate-spin text-4xl">🏀</div>
+			</div>
+		);
+	}
 
 	const isLeagueAdmin = session.user.id === leagueDetails?.created_by;
 	const isSuperAdmin = session.user.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
