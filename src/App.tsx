@@ -72,6 +72,13 @@ function App() {
         setDisplayName(metaName || emailName);
     };
 
+    const handleDeleteLeague = () => {
+        setCurrentLeagueId(null);
+        setLeagueDetails(null);
+        // Trigger a refresh to update the LeagueManager list
+        setRefreshTrigger((prev) => prev + 1);
+    };
+
     useEffect(() => {
         if (currentLeagueId) {
             fetchLeagueData(currentLeagueId);
@@ -163,11 +170,11 @@ function App() {
                     currentName={leagueDetails.name}
                     currentLockDate={leagueDetails.lock_at}
                     currentScoringType={leagueDetails.scoring_type}
-                    onUpdate={() => {fetchLeagueData(leagueDetails.id)
+                    onUpdate={() => {
+                        fetchLeagueData(leagueDetails.id);
                         handleSaveSuccess();
-                        }
-                        
-                    }
+                    }}
+                    onDelete={handleDeleteLeague} // Add this prop
                 />
             )}
 
