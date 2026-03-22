@@ -24,14 +24,16 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		setLoading(true);
 		try {
 			// 1. Fetch Standing Predictions (Seeds 1-10)
-			const { data: standingsData } = await supabase
+			const { data: standingsData, error: sError } = await supabase
 				.from('predictions')
 				.select('conference, rankings')
 				.eq('user_id', userId)
 				.eq('league_id', leagueId);
 
+			if (sError) throw sError;
+
 			const newStandings = { West: [] as string[], East: [] as string[] };
-			standingsData?.forEach((row: { conference: string; rankings: string[] }) => {
+			standingsData?.forEach((row: any) => {
 				if (row.conference === 'West' || row.conference === 'East') {
 					newStandings[row.conference as 'West' | 'East'] = row.rankings;
 				}
@@ -140,32 +142,32 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 	const eastSeed8 = getPlayInWinner('playin_e3');
 
 	return (
-		<div className="w-full flex flex-col items-center bg-[#0a0f1a] pb-24 px-4 overflow-x-hidden">
+		<div className="w-full flex flex-col items-center py-10">
 			
 			{/* PLAY-IN TOURNAMENT SECTION */}
-			<div className="w-full max-w-5xl bg-white/5 border border-white/5 rounded-3xl p-6 mb-16">
+			<div className="w-full max-w-5xl bg-white/5 border border-white/10 rounded-3xl p-8 mb-16 shadow-2xl">
 				<div className="text-[10px] font-black text-center text-gray-500 uppercase tracking-[0.5em] mb-8">NBA Play-In Tournament</div>
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 					<div className="flex flex-col gap-6">
-						<span className="text-[9px] font-black text-blue-500/40 uppercase text-center italic">West Play-In</span>
-						<div className="flex items-center justify-center gap-6">
-							<div className="flex flex-col gap-4">
+						<span className="text-[9px] font-black text-blue-500/40 uppercase text-center italic tracking-widest">West Play-In</span>
+						<div className="flex items-center justify-center gap-8">
+							<div className="flex flex-col gap-6">
 								{renderMatchup('playin_w1', 0, standings.West[6], standings.West[7], "7 vs 8 (Winner is #7)")}
 								{renderMatchup('playin_w2', 0, standings.West[8], standings.West[9], "9 vs 10")}
 							</div>
-							<div className="pt-8">
+							<div className="pt-10">
 								{renderMatchup('playin_w3', 0, westLoser78, westWinner910, "Winner is #8")}
 							</div>
 						</div>
 					</div>
 					<div className="flex flex-col gap-6">
-						<span className="text-[9px] font-black text-red-500/40 uppercase text-center italic">East Play-In</span>
-						<div className="flex items-center justify-center gap-6 flex-row-reverse">
-							<div className="flex flex-col gap-4">
+						<span className="text-[9px] font-black text-red-500/40 uppercase text-center italic tracking-widest">East Play-In</span>
+						<div className="flex items-center justify-center gap-8 flex-row-reverse">
+							<div className="flex flex-col gap-6">
 								{renderMatchup('playin_e1', 0, standings.East[6], standings.East[7], "7 vs 8 (Winner is #7)")}
 								{renderMatchup('playin_e2', 0, standings.East[8], standings.East[9], "9 vs 10")}
 							</div>
-							<div className="pt-8">
+							<div className="pt-10">
 								{renderMatchup('playin_e3', 0, eastLoser78, eastWinner910, "Winner is #8")}
 							</div>
 						</div>
@@ -174,12 +176,12 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 			</div>
 
 			{/* MAIN TOURNAMENT BRACKET */}
-			<div className="w-full overflow-x-auto no-scrollbar flex justify-center">
-				<div className="inline-block min-w-max mx-auto px-4 md:px-12">
-					<div className="flex items-center gap-10">
+			<div className="w-full overflow-x-auto no-scrollbar flex justify-center pb-20">
+				<div className="inline-block min-w-max mx-auto px-12">
+					<div className="flex items-center gap-12">
 						
 						{/* WEST CONFERENCE */}
-						<div className="flex items-center gap-8">
+						<div className="flex items-center gap-10">
 							<div className="flex flex-col gap-6">
 								{renderMatchup('first_round', 0, standings.West[0], westWinner78, "1 vs #7 Seed")}
 								{renderMatchup('first_round', 1, standings.West[3], standings.West[4], "4 vs 5")}
@@ -196,21 +198,21 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						</div>
 
 						{/* CENTERPIECE: THE FINALS */}
-						<div className="flex flex-col items-center gap-20 px-12">
+						<div className="flex flex-col items-center gap-24 px-12">
 							<div className="text-center">
-								<div className="px-6 py-2 rounded-full border border-orange-500/20 bg-orange-500/5 text-xs font-black text-orange-500 uppercase tracking-widest mb-8 italic">NBA Finals</div>
+								<div className="px-6 py-2 rounded-full border border-orange-500/20 bg-orange-500/5 text-xs font-black text-orange-500 uppercase tracking-widest mb-10 italic">NBA Finals</div>
 								{renderMatchup('finals', 0, bracket['conf_finals_0'], bracket['conf_finals_1'])}
 							</div>
 							<div 
 								onClick={() => !isLocked && bracket['finals_0'] && handlePick('champion', 0, bracket['finals_0'])}
-								className={`w-48 h-48 rounded-full border-4 flex items-center justify-center transition-all cursor-pointer shadow-2xl ${
+								className={`w-52 h-52 rounded-full border-4 flex items-center justify-center transition-all cursor-pointer shadow-2xl ${
 									bracket['champion_0'] ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/10 bg-black/40 hover:border-white/20'
 								}`}
 							>
 								{bracket['champion_0'] ? (
 									<img src={getTeam(bracket['champion_0'])?.logo} className="w-32 h-32 object-contain" />
 								) : (
-									<span className="text-6xl opacity-10">🏆</span>
+									<span className="text-7xl opacity-10">🏆</span>
 								)}
 							</div>
 						</div>
@@ -237,7 +239,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 			</div>
 
 			{/* SAVE BUTTON */}
-			<div className="mt-20">
+			<div className="mt-10">
 				<button 
 					onClick={handleSave} 
 					disabled={isLocked || loading} 
