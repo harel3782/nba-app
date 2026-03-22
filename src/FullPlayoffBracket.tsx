@@ -1,17 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from './supabaseClient';
-
-const TEAM_LOGOS: Record<string, string> = {
-	'Nuggets': 'https://upload.wikimedia.org/wikipedia/en/7/76/Denver_Nuggets.svg',
-	'Timberwolves': 'https://upload.wikimedia.org/wikipedia/en/7/7d/Minnesota_Timberwolves_logo_2017.svg',
-	'Thunder': 'https://upload.wikimedia.org/wikipedia/en/5/5d/Oklahoma_City_Thunder.svg',
-	'Mavericks': 'https://upload.wikimedia.org/wikipedia/en/9/97/Dallas_Mavericks_logo.svg',
-	'Celtics': 'https://upload.wikimedia.org/wikipedia/en/8/8f/Boston_Celtics.svg',
-	'Cavaliers': 'https://upload.wikimedia.org/wikipedia/en/4/4b/Cleveland_Cavaliers_logo_2022.svg',
-	'Knicks': 'https://upload.wikimedia.org/wikipedia/en/2/25/New_York_Knicks_logo.svg',
-	'Pacers': 'https://upload.wikimedia.org/wikipedia/en/1/1b/Indiana_Pacers.svg',
-};
+import { NBA_TEAMS } from './teams'; // Using your existing teams list
 
 interface Props {
 	userId: string;
@@ -23,8 +13,14 @@ interface Props {
 export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props) {
 	const [predictions, setPredictions] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(true);
-	const [zoom, setZoom] = useState(1); // Set base zoom to 100%
+	const [zoom, setZoom] = useState(1);
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Helper to find logos from your NBA_TEAMS data
+	const getTeamLogo = (shortName: string) => {
+		const team = NBA_TEAMS.find(t => t.name.includes(shortName));
+		return team ? team.logo : '';
+	};
 
 	useEffect(() => {
 		fetchPredictions();
@@ -53,7 +49,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		const newPredictions = { ...predictions };
 		newPredictions[`${stageId}_${gameIndex}`] = team;
 
-		// Cleanup subsequent rounds logic
+		// Reset subsequent rounds if a previous winner is changed
 		if (stageId === 'conf_semis') {
 			const nextGame = Math.floor(gameIndex / 2);
 			delete newPredictions[`conf_finals_${nextGame}`];
@@ -82,7 +78,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 			if (error) throw error;
 			onSave();
 		} catch (err) {
-			console.error('Error saving:', err);
+			console.error('Error saving bracket:', err);
 		} finally {
 			setLoading(false);
 		}
@@ -92,7 +88,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		const winner = predictions[`${stageId}_${gameIndex}`];
 
 		return (
-			<div className="flex flex-col gap-1 w-64 bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
+			<div className="flex flex-col gap-[2px] w-64 bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
 				{[teamA, teamB].map((team, idx) => (
 					<button
 						key={idx}
@@ -105,19 +101,19 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 						} ${!team ? 'opacity-20' : ''}`}
 					>
 						<div className="flex items-center gap-4">
-							<div className="w-8 h-8 flex items-center justify-center bg-black/20 rounded-lg p-1">
-								{team && TEAM_LOGOS[team] ? (
-									<img src={TEAM_LOGOS[team]} alt="" className="w-full h-full object-contain" />
+							<div className="w-8 h-8 flex items-center justify-center p-0.5">
+								{team ? (
+									<img src={getTeamLogo(team)} alt="" className="w-full h-full object-contain" />
 								) : (
 									<div className="w-4 h-4 rounded-full border border-white/10" />
 								)}
 							</div>
-							<span className="text-sm font-black uppercase tracking-wider">
+							<span className="text-[13px] font-black uppercase tracking-widest">
 								{team || 'TBD'}
 							</span>
 						</div>
 						{winner === team && team && (
-							<span className="text-[10px] bg-orange-500 text-white px-2 py-1 rounded-md font-black italic">WIN</span>
+							<span className="text-[9px] bg-orange-500 text-white px-2 py-1 rounded font-black italic">WIN</span>
 						)}
 					</button>
 				))}
@@ -128,58 +124,59 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 	if (loading) return <div className="p-20 text-center animate-pulse text-blue-400 font-black">LOADING BRACKET...</div>;
 
 	return (
-		<div className="w-full h-screen relative flex flex-col">
-			{/* FIX: Improved Scroll Container to prevent clipping when zoomed */}
+		<div className="w-full relative">
+			{/* REMOVED: Fixed height container. Now uses fluid overflow. */}
 			<div 
 				ref={containerRef} 
-				className="flex-1 overflow-auto p-12 no-scrollbar bg-black/20"
+				className="w-full overflow-x-auto overflow-y-hidden no-scrollbar py-20"
 			>
 				<motion.div 
-					className="origin-top-left flex justify-center items-center gap-24 py-20 px-40"
+					className="flex justify-center items-center gap-24 px-40"
 					style={{ 
 						scale: zoom,
 						width: 'max-content',
-						height: 'max-content'
+						margin: '0 auto',
+						transformOrigin: 'center center' // Prevents clipping at edges
 					}}
 				>
 					{/* WEST SIDE */}
 					<div className="flex gap-20 items-center">
 						<div className="space-y-32">
-							<div className="text-center text-[10px] font-black text-blue-400/40 uppercase tracking-[0.5em] mb-4">West Semifinals</div>
+							<div className="text-center text-[10px] font-black text-white/20 uppercase tracking-[0.5em] mb-4">West Semifinals</div>
 							{renderMatchup('conf_semis', 0, 'Thunder', 'Mavericks')}
 							{renderMatchup('conf_semis', 1, 'Nuggets', 'Timberwolves')}
 						</div>
 						<div className="space-y-0 pt-16">
-							<div className="text-center text-[10px] font-black text-blue-400/40 uppercase tracking-[0.5em] mb-4">West Finals</div>
+							<div className="text-center text-[10px] font-black text-white/20 uppercase tracking-[0.5em] mb-4">West Finals</div>
 							{renderMatchup('conf_finals', 0, predictions['conf_semis_0'], predictions['conf_semis_1'])}
 						</div>
 					</div>
 
-					{/* CENTERPIECE: NBA FINALS */}
+					{/* CENTER: NBA FINALS */}
 					<div className="flex flex-col items-center gap-16 px-16">
 						<div className="text-center">
-							<div className="inline-block px-6 py-2 rounded-full border-2 border-orange-500/30 bg-orange-500/10 text-xs font-black text-orange-400 uppercase tracking-[0.6em] mb-8 animate-pulse">NBA FINALS</div>
+							<div className="inline-block px-8 py-2 rounded-full border-2 border-orange-500/20 bg-orange-500/5 text-xs font-black text-orange-500 uppercase tracking-[0.8em] mb-12">NBA FINALS</div>
 							{renderMatchup('finals', 0, predictions['conf_finals_0'], predictions['conf_finals_1'])}
 						</div>
 						
 						<div className="flex flex-col items-center">
-							<div className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.5em] mb-6">World Champion</div>
+							<div className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.5em] mb-8">Champion</div>
 							<motion.div 
 								whileTap={{ scale: 0.9 }}
 								onClick={() => !isLocked && predictions['finals_0'] && handleWinnerSelect('champion', 0, predictions['finals_0'])}
-								className={`w-52 h-52 rounded-full border-4 flex items-center justify-center transition-all cursor-pointer relative group ${
+								className={`w-60 h-60 rounded-full border-4 flex items-center justify-center transition-all cursor-pointer relative group ${
 									predictions['champion_0'] 
-										? 'border-yellow-500 bg-yellow-500/5 shadow-[0_0_80px_rgba(234,179,8,0.3)]' 
+										? 'border-yellow-500 bg-yellow-500/5 shadow-[0_0_100px_rgba(234,179,8,0.2)]' 
 										: 'border-white/10 bg-black/40 hover:border-white/30'
 								}`}
 							>
 								{predictions['champion_0'] ? (
 									<>
-										<img src={TEAM_LOGOS[predictions['champion_0']]} alt="Winner" className="w-32 h-32 object-contain z-10" />
+										<img src={getTeamLogo(predictions['champion_0'])} alt="Winner" className="w-32 h-32 object-contain z-10" />
 										<div className="absolute inset-0 bg-yellow-500/10 blur-3xl rounded-full" />
 									</>
 								) : (
-									<span className="text-6xl opacity-10 group-hover:opacity-30 transition-opacity">🏆</span>
+									<span className="text-7xl opacity-5 group-hover:opacity-20 transition-opacity">🏆</span>
 								)}
 							</motion.div>
 						</div>
@@ -188,35 +185,34 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 					{/* EAST SIDE */}
 					<div className="flex gap-20 items-center flex-row-reverse">
 						<div className="space-y-32">
-							<div className="text-center text-[10px] font-black text-red-500/40 uppercase tracking-[0.5em] mb-4">East Semifinals</div>
+							<div className="text-center text-[10px] font-black text-white/20 uppercase tracking-[0.5em] mb-4">East Semifinals</div>
 							{renderMatchup('conf_semis', 2, 'Celtics', 'Cavaliers')}
 							{renderMatchup('conf_semis', 3, 'Knicks', 'Pacers')}
 						</div>
 						<div className="space-y-0 pt-16">
-							<div className="text-center text-[10px] font-black text-red-500/40 uppercase tracking-[0.5em] mb-4">East Finals</div>
+							<div className="text-center text-[10px] font-black text-white/20 uppercase tracking-[0.5em] mb-4">East Finals</div>
 							{renderMatchup('conf_finals', 1, predictions['conf_semis_2'], predictions['conf_semis_3'])}
 						</div>
 					</div>
 				</motion.div>
 			</div>
 
-			{/* IMPROVED MOBILE BAR: Solid Black with High Visibility */}
-			<div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#000000] border-t border-white/20 p-6 flex items-center justify-between z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.9)]">
+			{/* MOBILE BAR */}
+			<div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t border-white/20 p-6 flex items-center justify-between z-50 shadow-[0_-20px_60px_rgba(0,0,0,1)]">
 				<div className="flex items-center gap-6">
-					<button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-2xl font-black shadow-lg">−</button>
+					<button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white text-2xl font-black active:bg-white/20 transition-all">−</button>
 					<div className="text-center min-w-[50px]">
-						<div className="text-[9px] font-black text-gray-500 uppercase mb-1">Scale</div>
+						<div className="text-[9px] font-black text-gray-600 uppercase mb-1">Scale</div>
 						<div className="text-sm font-black text-white">{Math.round(zoom * 100)}%</div>
 					</div>
-					<button onClick={() => setZoom(z => Math.min(z + 0.1, 1.5))} className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-2xl font-black shadow-lg">+</button>
+					<button onClick={() => setZoom(z => Math.min(z + 0.1, 1.5))} className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white text-2xl font-black active:bg-white/20 transition-all">+</button>
 				</div>
-				
 				<button 
 					onClick={handleSave} 
 					disabled={isLocked || loading} 
-					className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-10 h-14 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-[0_0_30px_rgba(234,88,12,0.4)] active:scale-95 disabled:opacity-50 transition-all"
+					className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-10 h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg active:scale-95 disabled:opacity-50 transition-all"
 				>
-					{loading ? 'WAIT...' : 'SAVE'}
+					{loading ? '...' : 'SAVE'}
 				</button>
 			</div>
 		</div>
