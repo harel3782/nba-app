@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from './supabaseClient';
-import { NBA_TEAMS } from './teams'; // Source of truth for logos
+import { NBA_TEAMS } from './teams';
 
 interface Props {
 	userId: string;
@@ -13,8 +13,8 @@ interface Props {
 export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props) {
 	const [predictions, setPredictions] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(true);
-	const [zoom, setZoom] = useState(0.75); // Slightly smaller base zoom to fit more
 
+	// Get team data directly from your teams.ts file
 	const getTeam = (id: string) => NBA_TEAMS.find(t => t.id === id);
 
 	useEffect(() => {
@@ -44,16 +44,14 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		const newPredictions = { ...predictions };
 		newPredictions[`${stageId}_${gameIndex}`] = teamId;
 
-		// Cascade Reset: If you change an early winner, it clears their path forward
-		const stages = ['playin', 'first_round', 'conf_semis', 'conf_finals', 'finals', 'champion'];
-		const currentIdx = stages.indexOf(stageId);
-		
-		for (let i = currentIdx + 1; i < stages.length; i++) {
+		// Cascade reset: If an early winner is changed, clear their future path
+		const path = ['first_round', 'conf_semis', 'conf_finals', 'finals', 'champion'];
+		const currentStageIdx = path.indexOf(stageId);
+		for (let i = currentStageIdx + 1; i < path.length; i++) {
 			Object.keys(newPredictions).forEach(key => {
-				if (key.startsWith(stages[i])) delete newPredictions[key];
+				if (key.startsWith(path[i])) delete newPredictions[key];
 			});
 		}
-
 		setPredictions(newPredictions);
 	};
 
@@ -77,153 +75,146 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props
 		}
 	};
 
-	const renderMatchup = (stageId: string, gameIndex: number, teamAId: string | null, teamBId: string | null, width = "w-48") => {
+	const renderMatchup = (stageId: string, gameIndex: number, teamAId: string | null, teamBId: string | null) => {
 		const winnerId = predictions[`${stageId}_${gameIndex}`];
 		const teamA = teamAId ? getTeam(teamAId) : null;
 		const teamB = teamBId ? getTeam(teamBId) : null;
 
 		return (
-			<div className={`flex flex-col gap-[1px] ${width} bg-black/60 border border-white/10 rounded-lg overflow-hidden shadow-xl z-10`}>
+			<div className="flex flex-col gap-[2px] w-40 bg-black/60 border border-white/10 rounded-lg overflow-hidden shadow-xl z-20">
 				{[teamA, teamB].map((team, idx) => (
 					<button
 						key={idx}
 						disabled={isLocked || !team}
 						onClick={() => team && handleWinnerSelect(stageId, gameIndex, team.id)}
-						className={`flex items-center justify-between px-3 py-2.5 transition-all ${
+						className={`flex items-center justify-between px-3 py-2 transition-all ${
 							winnerId === team?.id && team 
-								? 'bg-orange-500/20 text-orange-400' 
+								? 'bg-orange-500/30 text-white' 
 								: 'hover:bg-white/5 text-gray-400'
 						} ${!team ? 'opacity-20' : ''}`}
 					>
 						<div className="flex items-center gap-2">
-							<img src={team?.logo || ''} alt="" className={`w-6 h-6 object-contain ${!team ? 'hidden' : ''}`} />
-							{!team && <div className="w-6 h-6 rounded-full bg-white/5" />}
-							<span className="text-[10px] font-black uppercase tracking-tighter truncate">
+							{team ? (
+								<img src={team.logo} alt="" className="w-5 h-5 object-contain" />
+							) : (
+								<div className="w-5 h-5 rounded-full bg-white/5" />
+							)}
+							<span className="text-[10px] font-black uppercase tracking-tighter truncate w-20 text-left">
 								{team ? team.name.split(' ').pop() : 'TBD'}
 							</span>
 						</div>
-						{winnerId === team?.id && team && <span className="text-[8px] font-bold text-orange-500">★</span>}
+						{winnerId === team?.id && team && <span className="text-orange-500 text-[10px]">●</span>}
 					</button>
 				))}
 			</div>
 		);
 	};
 
-	if (loading) return <div className="p-20 text-center font-black text-orange-500 animate-pulse">LOADING NBA BRACKET...</div>;
+	if (loading) return <div className="p-20 text-center font-black text-orange-500">LOADING...</div>;
 
 	return (
-		<div className="w-full min-h-screen flex flex-col items-center bg-[#0a0f1a] text-white">
+		<div className="w-full h-[85vh] flex flex-col items-center justify-center bg-[#0a0f1a] overflow-hidden p-4 relative">
 			
-			{/* PLAY-IN TOURNAMENT SECTION (Top Header) */}
-			<div className="w-full max-w-[1200px] mt-8 mb-4 px-4 py-6 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-md">
-				<div className="text-[10px] font-black text-center uppercase tracking-[0.5em] mb-6 text-gray-500">SoFi NBA Play-In Tournament</div>
-				<div className="flex justify-around items-center gap-4">
-					<div className="flex flex-col items-center gap-2">
-						<span className="text-[8px] font-bold text-blue-400 uppercase italic">West 7/8</span>
-						{renderMatchup('playin', 0, 'PHX', 'GSW', 'w-40')}
+			{/* CONNECTOR LINES LAYER (SVG) */}
+			<svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+				<g fill="none" stroke="white" strokeWidth="1.5">
+					{/* West Lines */}
+					<path d="M 220 120 L 260 120 L 260 170 L 300 170" />
+					<path d="M 220 220 L 260 220 L 260 170 L 300 170" />
+					<path d="M 220 380 L 260 380 L 260 430 L 300 430" />
+					<path d="M 220 480 L 260 480 L 260 430 L 300 430" />
+					<path d="M 460 170 L 500 170 L 500 300 L 540 300" />
+					<path d="M 460 430 L 500 430 L 500 300 L 540 300" />
+
+					{/* East Lines */}
+					<path d="M 1180 120 L 1140 120 L 1140 170 L 1100 170" />
+					<path d="M 1180 220 L 1140 220 L 1140 170 L 1100 170" />
+					<path d="M 1180 380 L 1140 380 L 1140 430 L 1100 430" />
+					<path d="M 1180 480 L 1140 480 L 1140 430 L 1100 430" />
+					<path d="M 940 170 L 900 170 L 900 300 L 860 300" />
+					<path d="M 940 430 L 900 430 L 900 300 L 860 300" />
+				</g>
+			</svg>
+
+			{/* THE BRACKET GRID */}
+			<div className="flex items-center gap-10 w-full max-w-[1400px] h-full">
+				
+				{/* WEST CONFERENCE */}
+				<div className="flex items-center gap-12">
+					<div className="flex flex-col gap-10">
+						<span className="text-[8px] font-bold text-blue-500/50 uppercase text-center mb-2">First Round</span>
+						{renderMatchup('first_round', 0, 'OKC', 'NOP')}
+						{renderMatchup('first_round', 1, 'LAC', 'DAL')}
+						{renderMatchup('first_round', 2, 'MIN', 'PHX')}
+						{renderMatchup('first_round', 3, 'DEN', 'LAL')}
 					</div>
-					<div className="flex flex-col items-center gap-2">
-						<span className="text-[8px] font-bold text-blue-400 uppercase italic">West 9/10</span>
-						{renderMatchup('playin', 1, 'SAC', 'NOP', 'w-40')}
+					<div className="flex flex-col gap-36">
+						<span className="text-[8px] font-bold text-blue-500/50 uppercase text-center mb-2">Semis</span>
+						{renderMatchup('conf_semis', 0, predictions['first_round_0'], predictions['first_round_1'])}
+						{renderMatchup('conf_semis', 1, predictions['first_round_2'], predictions['first_round_3'])}
 					</div>
-					<div className="h-10 w-[1px] bg-white/10 mx-4" />
-					<div className="flex flex-col items-center gap-2">
-						<span className="text-[8px] font-bold text-red-400 uppercase italic">East 7/8</span>
-						{renderMatchup('playin', 2, 'MIA', 'PHI', 'w-40')}
-					</div>
-					<div className="flex flex-col items-center gap-2">
-						<span className="text-[8px] font-bold text-red-400 uppercase italic">East 9/10</span>
-						{renderMatchup('playin', 3, 'CHI', 'ATL', 'w-40')}
+					<div>
+						<span className="text-[8px] font-bold text-blue-500/50 uppercase text-center mb-2">W. Finals</span>
+						{renderMatchup('conf_finals', 0, predictions['conf_semis_0'], predictions['conf_semis_1'])}
 					</div>
 				</div>
+
+				{/* CENTERPIECE: NBA FINALS */}
+				<div className="flex-1 flex flex-col items-center gap-12 pt-10">
+					<div className="text-center">
+						<div className="inline-block px-4 py-1 rounded-full border border-orange-500/30 bg-orange-500/5 text-[9px] font-black text-orange-500 uppercase tracking-[0.4em] mb-4 italic">The Finals</div>
+						{renderMatchup('finals', 0, predictions['conf_finals_0'], predictions['conf_finals_1'], 'w-56')}
+					</div>
+					<div className="flex flex-col items-center">
+						<div className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-4">Champion</div>
+						<div 
+							onClick={() => !isLocked && predictions['finals_0'] && handleWinnerSelect('champion', 0, predictions['finals_0'])}
+							className={`w-40 h-40 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer relative ${
+								predictions['champion_0'] 
+									? 'border-yellow-500 bg-yellow-500/5 shadow-[0_0_50px_rgba(234,179,8,0.2)]' 
+									: 'border-white/10 bg-black/40 hover:border-white/20'
+							}`}
+						>
+							{predictions['champion_0'] ? (
+								<>
+									<img src={getTeam(predictions['champion_0'])?.logo} alt="" className="w-24 h-24 object-contain z-10 animate-bounce" />
+									<div className="absolute inset-0 bg-yellow-500/10 blur-3xl rounded-full" />
+								</>
+							) : (
+								<span className="text-4xl opacity-10">🏆</span>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{/* EAST CONFERENCE */}
+				<div className="flex items-center gap-12 flex-row-reverse">
+					<div className="flex flex-col gap-10">
+						<span className="text-[8px] font-bold text-red-500/50 uppercase text-center mb-2">First Round</span>
+						{renderMatchup('first_round', 4, 'BOS', 'MIA')}
+						{renderMatchup('first_round', 5, 'CLE', 'ORL')}
+						{renderMatchup('first_round', 6, 'MIL', 'IND')}
+						{renderMatchup('first_round', 7, 'NYK', 'PHI')}
+					</div>
+					<div className="flex flex-col gap-36">
+						<span className="text-[8px] font-bold text-red-500/50 uppercase text-center mb-2">Semis</span>
+						{renderMatchup('conf_semis', 2, predictions['first_round_4'], predictions['first_round_5'])}
+						{renderMatchup('conf_semis', 3, predictions['first_round_6'], predictions['first_round_7'])}
+					</div>
+					<div>
+						<span className="text-[8px] font-bold text-red-500/50 uppercase text-center mb-2">E. Finals</span>
+						{renderMatchup('conf_finals', 1, predictions['conf_semis_2'], predictions['conf_semis_3'])}
+					</div>
+				</div>
+
 			</div>
 
-			{/* FULL BRACKET CANVAS */}
-			<div className="w-full overflow-x-auto no-scrollbar py-10 flex justify-center">
-				<motion.div 
-					className="flex items-center gap-10 min-w-[1600px] justify-center"
-					animate={{ scale: zoom }}
-				>
-					{/* WEST: First Round & Semis */}
-					<div className="flex gap-8 items-center">
-						<div className="space-y-8">
-							<div className="text-[9px] font-black text-center text-blue-500/40 uppercase mb-2">First Round</div>
-							{renderMatchup('first_round', 0, 'OKC', predictions['playin_0'] || null)}
-							{renderMatchup('first_round', 1, 'LAC', 'DAL')}
-							{renderMatchup('first_round', 2, 'MIN', 'PHX')}
-							{renderMatchup('first_round', 3, 'DEN', 'LAL')}
-						</div>
-						<div className="space-y-40">
-							<div className="text-[9px] font-black text-center text-blue-500/40 uppercase mb-2">Conf Semis</div>
-							{renderMatchup('conf_semis', 0, predictions['first_round_0'], predictions['first_round_1'])}
-							{renderMatchup('conf_semis', 1, predictions['first_round_2'], predictions['first_round_3'])}
-						</div>
-						<div className="pt-10">
-							<div className="text-[9px] font-black text-center text-blue-500/40 uppercase mb-2">W. Finals</div>
-							{renderMatchup('conf_finals', 0, predictions['conf_semis_0'], predictions['conf_semis_1'])}
-						</div>
-					</div>
-
-					{/* CENTER: NBA FINALS & CHAMPION */}
-					<div className="flex flex-col items-center gap-12 px-10">
-						<div className="text-center">
-							<div className="px-4 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-[10px] font-black text-orange-500 uppercase tracking-widest mb-6 italic">NBA FINALS</div>
-							{renderMatchup('finals', 0, predictions['conf_finals_0'], predictions['conf_finals_1'], 'w-56')}
-						</div>
-						<div className="flex flex-col items-center">
-							<div className="text-[10px] font-black text-yellow-500 uppercase tracking-widest mb-4">World Champion</div>
-							<div 
-								onClick={() => !isLocked && predictions['finals_0'] && handleWinnerSelect('champion', 0, predictions['finals_0'])}
-								className={`w-48 h-48 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer relative ${
-									predictions['champion_0'] 
-										? 'border-yellow-500 bg-yellow-500/5 shadow-[0_0_60px_rgba(234,179,8,0.2)]' 
-										: 'border-white/10 bg-black/40 hover:border-white/20'
-								}`}
-							>
-								{predictions['champion_0'] ? (
-									<>
-										<img src={getTeam(predictions['champion_0'])?.logo} alt="" className="w-28 h-28 object-contain z-10 animate-pulse" />
-										<div className="absolute inset-0 bg-yellow-500/10 blur-3xl rounded-full" />
-									</>
-								) : (
-									<span className="text-5xl opacity-10">🏆</span>
-								)}
-							</div>
-						</div>
-					</div>
-
-					{/* EAST: First Round & Semis */}
-					<div className="flex gap-8 items-center flex-row-reverse">
-						<div className="space-y-8">
-							<div className="text-[9px] font-black text-center text-red-500/40 uppercase mb-2">First Round</div>
-							{renderMatchup('first_round', 4, 'BOS', predictions['playin_2'] || null)}
-							{renderMatchup('first_round', 5, 'CLE', 'ORL')}
-							{renderMatchup('first_round', 6, 'MIL', 'IND')}
-							{renderMatchup('first_round', 7, 'NYK', 'PHI')}
-						</div>
-						<div className="space-y-40">
-							<div className="text-[9px] font-black text-center text-red-500/40 uppercase mb-2">Conf Semis</div>
-							{renderMatchup('conf_semis', 2, predictions['first_round_4'], predictions['first_round_5'])}
-							{renderMatchup('conf_semis', 3, predictions['first_round_6'], predictions['first_round_7'])}
-						</div>
-						<div className="pt-10">
-							<div className="text-[9px] font-black text-center text-red-500/40 uppercase mb-2">E. Finals</div>
-							{renderMatchup('conf_finals', 1, predictions['conf_semis_2'], predictions['conf_semis_3'])}
-						</div>
-					</div>
-				</motion.div>
-			</div>
-
-			{/* BOTTOM CONTROLS */}
-			<div className="fixed bottom-6 flex items-center gap-4 bg-black/80 backdrop-blur-2xl border border-white/10 px-6 py-3 rounded-2xl shadow-2xl z-[100]">
-				<button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} className="text-xl font-bold px-3">−</button>
-				<span className="text-[10px] font-black uppercase text-gray-500 w-12 text-center">{Math.round(zoom * 100)}%</span>
-				<button onClick={() => setZoom(z => Math.min(z + 0.1, 1.2))} className="text-xl font-bold px-3">+</button>
-				<div className="h-6 w-[1px] bg-white/10 mx-2" />
+			{/* BOTTOM BAR: SAVE BUTTON */}
+			<div className="mt-auto pb-4 w-full flex justify-center">
 				<button 
 					onClick={handleSave} 
 					disabled={isLocked || loading} 
-					className="bg-orange-600 hover:bg-orange-500 text-white px-8 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+					className="bg-orange-600 hover:bg-orange-500 text-white px-12 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all"
 				>
 					{loading ? 'SAVING...' : 'SAVE BRACKET'}
 				</button>
