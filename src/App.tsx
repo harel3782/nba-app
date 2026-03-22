@@ -100,14 +100,16 @@ function App() {
 
     // --- FIX: Added Delay ---
     const handleSaveSuccess = () => {
-        setIsUpdatingScores(true); // Show some visual feedback if you want
+	// Start the global loading animation
+	setIsUpdatingScores(true); 
 
-        // Wait 1 second (1000ms) for the DB Trigger to finish calculating
-        setTimeout(() => {
-            setRefreshTrigger((prev) => prev + 1);
-            setIsUpdatingScores(false);
-        }, 1000);
-    };
+	// Wait 1000ms for Supabase DB Triggers to finalize calculations
+	setTimeout(() => {
+		// Incrementing this trigger forces LeaderboardTable to re-fetch data
+		setRefreshTrigger((prev) => prev + 1); 
+		setIsUpdatingScores(false);
+	}, 1000);
+};
 
     const copyToClipboard = () => {
         if (currentLeagueId) {
@@ -161,7 +163,11 @@ function App() {
                     currentName={leagueDetails.name}
                     currentLockDate={leagueDetails.lock_at}
                     currentScoringType={leagueDetails.scoring_type}
-                    onUpdate={() => fetchLeagueData(leagueDetails.id)}
+                    onUpdate={() => {fetchLeagueData(leagueDetails.id)
+                        handleSaveSuccess();
+                        }
+                        
+                    }
                 />
             )}
 
