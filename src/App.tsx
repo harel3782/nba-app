@@ -154,6 +154,7 @@ function App() {
 
             {leagueDetails && (
                 <LeagueSettingsModal
+                    key={leagueDetails.id}
                     isOpen={isSettingsOpen}
                     onClose={() => setIsSettingsOpen(false)}
                     leagueId={leagueDetails.id}
