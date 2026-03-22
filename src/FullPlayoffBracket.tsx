@@ -10,188 +10,187 @@ interface Props {
 }
 
 export function FullPlayoffBracket({ userId, leagueId, isLocked, onSave }: Props) {
-	const [predictions, setPredictions] = useState<Record<string, string>>({});
+	const [bracket, setBracket] = useState<Record<string, string>>({});
+	const [standings, setStandings] = useState<{ West: string[], East: string[] }>({ West: [], East: [] });
 	const [loading, setLoading] = useState(true);
 
-	// Fetch team data from your central teams.ts file
 	const getTeam = (id: string) => NBA_TEAMS.find(t => t.id === id);
 
 	useEffect(() => {
-		fetchPredictions();
+		loadData();
 	}, [userId, leagueId]);
 
-	async function fetchPredictions() {
+	async function loadData() {
+		setLoading(true);
 		try {
-			const { data, error } = await supabase
+			// 1. Fetch standings predictions to get seeds 1-10
+			const { data: standingsData } = await supabase
+				.from('predictions')
+				.select('conference, rankings')
+				.eq('user_id', userId)
+				.eq('league_id', leagueId);
+
+			const newStandings = { West: [] as string[], East: [] as string[] };
+			standingsData?.forEach(row => {
+				if (row.conference === 'West' || row.conference === 'East') {
+					newStandings[row.conference as 'West' | 'East'] = row.rankings;
+				}
+			});
+			setStandings(newStandings);
+
+			// 2. Fetch existing bracket choices
+			const { data: bracketData } = await supabase
 				.from('tournament_predictions')
 				.select('selection_data')
 				.eq('user_id', userId)
 				.eq('league_id', leagueId)
 				.maybeSingle();
 
-			if (error) throw error;
-			if (data?.selection_data) setPredictions(data.selection_data);
+			if (bracketData?.selection_data) {
+				setBracket(bracketData.selection_data);
+			}
 		} catch (err) {
-			console.error('Error fetching bracket:', err);
+			console.error('Error loading bracket data:', err);
 		} finally {
 			setLoading(false);
 		}
 	}
 
-	const handleWinnerSelect = (stageId: string, gameIndex: number, teamId: string) => {
+	const handlePick = (stageId: string, gameIndex: number, teamId: string) => {
 		if (isLocked) return;
-		const newPredictions = { ...predictions };
-		newPredictions[`${stageId}_${gameIndex}`] = teamId;
+		const nextBracket = { ...bracket };
+		nextBracket[`${stageId}_${gameIndex}`] = teamId;
 
-		// Simple logic to clear forward path if a winner is changed early
-		const sequence = ['first_round', 'conf_semis', 'conf_finals', 'finals', 'champion'];
+		// Cascade delete forward picks if an earlier round changes
+		const sequence = ['playin', 'first_round', 'conf_semis', 'conf_finals', 'finals', 'champion'];
 		const startIdx = sequence.indexOf(stageId);
 		for (let i = startIdx + 1; i < sequence.length; i++) {
-			Object.keys(newPredictions).forEach(key => {
-				if (key.startsWith(sequence[i])) delete newPredictions[key];
+			Object.keys(nextBracket).forEach(key => {
+				if (key.startsWith(sequence[i])) delete nextBracket[key];
 			});
 		}
-		setPredictions(newPredictions);
+		setBracket(nextBracket);
 	};
 
 	const handleSave = async () => {
 		setLoading(true);
 		try {
-			const { error } = await supabase
-				.from('tournament_predictions')
-				.upsert({
-					user_id: userId,
-					league_id: leagueId,
-					selection_data: predictions,
-					updated_at: new Date().toISOString()
-				});
-			if (error) throw error;
+			await supabase.from('tournament_predictions').upsert({
+				user_id: userId,
+				league_id: leagueId,
+				selection_data: bracket,
+				updated_at: new Date().toISOString()
+			});
 			onSave();
-		} catch (err) {
-			console.error('Save error:', err);
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	const renderMatchup = (stageId: string, gameIndex: number, teamAId: string | null, teamBId: string | null) => {
-		const winnerId = predictions[`${stageId}_${gameIndex}`];
+	const renderMatchup = (stageId: string, gameIndex: number, teamAId: string | null, teamBId: string | null, label?: string) => {
+		const winnerId = bracket[`${stageId}_${gameIndex}`];
 		const teamA = teamAId ? getTeam(teamAId) : null;
 		const teamB = teamBId ? getTeam(teamBId) : null;
 
 		return (
-			<div className="flex flex-col gap-[1px] w-40 bg-black/60 border border-white/10 rounded-lg overflow-hidden shadow-lg">
-				{[teamA, teamB].map((team, idx) => (
-					<button
-						key={idx}
-						disabled={isLocked || !team}
-						onClick={() => team && handleWinnerSelect(stageId, gameIndex, team.id)}
-						className={`flex items-center justify-between px-3 py-2 transition-all ${
-							winnerId === team?.id && team 
-								? 'bg-orange-600 text-white' 
-								: 'hover:bg-white/5 text-gray-400'
-						} ${!team ? 'opacity-20' : ''}`}
-					>
-						<div className="flex items-center gap-2">
-							{team ? (
-								<img src={team.logo} alt="" className="w-5 h-5 object-contain" />
-							) : (
-								<div className="w-5 h-5 rounded-full bg-white/5" />
-							)}
-							<span className="text-[10px] font-black uppercase tracking-tighter truncate w-16 text-left">
-								{team ? team.name.split(' ').pop() : 'TBD'}
-							</span>
-						</div>
-						{winnerId === team?.id && team && <span className="text-[8px]">●</span>}
-					</button>
-				))}
+			<div className="flex flex-col gap-1">
+				{label && <span className="text-[7px] font-bold text-gray-600 uppercase mb-1 ml-1">{label}</span>}
+				<div className="w-36 bg-black/60 border border-white/10 rounded-lg overflow-hidden">
+					{[teamA, teamB].map((team, idx) => (
+						<button
+							key={idx}
+							disabled={isLocked || !team}
+							onClick={() => team && handlePick(stageId, gameIndex, team.id)}
+							className={`w-full flex items-center justify-between px-2 py-1.5 transition-all ${
+								winnerId === team?.id && team ? 'bg-orange-600 text-white' : 'hover:bg-white/5 text-gray-400'
+							} ${!team ? 'opacity-20' : ''}`}
+						>
+							<div className="flex items-center gap-2">
+								{team ? <img src={team.logo} className="w-4 h-4 object-contain" /> : <div className="w-4 h-4 rounded-full bg-white/5" />}
+								<span className="text-[9px] font-black uppercase truncate">{team ? team.name.split(' ').pop() : 'TBD'}</span>
+							</div>
+						</button>
+					))}
+				</div>
 			</div>
 		);
 	};
 
-	if (loading) return <div className="p-20 text-center font-black text-orange-500 animate-pulse">LOADING...</div>;
+	if (loading) return <div className="p-20 text-center text-orange-500 font-black">SYNCING STANDINGS...</div>;
+
+	// Play-In Logic Winners
+	const west78 = bracket['playin_0'];
+	const west910 = bracket['playin_1'];
+	const east78 = bracket['playin_2'];
+	const east910 = bracket['playin_3'];
 
 	return (
-		<div className="w-full flex flex-col items-center bg-[#0a0f1a] py-10 px-4">
+		<div className="w-full flex flex-col items-center bg-[#0a0f1a] pb-20">
 			
-			<div className="flex items-center justify-center gap-6 w-full max-w-7xl">
+			{/* PLAY-IN SECTION */}
+			<div className="w-full max-w-5xl grid grid-cols-4 gap-4 mb-12 p-4 bg-white/5 border border-white/5 rounded-2xl">
+				<div className="col-span-4 text-center text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Play-In Tournament</div>
+				{renderMatchup('playin', 0, standings.West[6], standings.West[7], "West 7 vs 8")}
+				{renderMatchup('playin', 1, standings.West[8], standings.West[9], "West 9 vs 10")}
+				{renderMatchup('playin', 2, standings.East[6], standings.East[7], "East 7 vs 8")}
+				{renderMatchup('playin', 3, standings.East[8], standings.East[9], "East 9 vs 10")}
+			</div>
+
+			<div className="flex items-center justify-center gap-4 w-full">
 				
-				{/* WEST CONFERENCE */}
-				<div className="flex items-center gap-6">
+				{/* WEST */}
+				<div className="flex items-center gap-4">
 					<div className="flex flex-col gap-4">
-						<span className="text-[8px] font-black text-blue-500/40 uppercase text-center mb-1">First Round</span>
-						{renderMatchup('first_round', 0, 'OKC', 'NOP')}
-						{renderMatchup('first_round', 1, 'LAC', 'DAL')}
-						{renderMatchup('first_round', 2, 'MIN', 'PHX')}
-						{renderMatchup('first_round', 3, 'DEN', 'LAL')}
+						{renderMatchup('first_round', 0, standings.West[0], west78 || null, "1 vs 7/8")}
+						{renderMatchup('first_round', 1, standings.West[3], standings.West[4], "4 vs 5")}
+						{renderMatchup('first_round', 2, standings.West[2], standings.West[5], "3 vs 6")}
+						{renderMatchup('first_round', 3, standings.West[1], west910 || null, "2 vs 9/10")}
 					</div>
-					<div className="flex flex-col gap-28">
-						<span className="text-[8px] font-black text-blue-500/40 uppercase text-center mb-1">Semis</span>
-						{renderMatchup('conf_semis', 0, predictions['first_round_0'], predictions['first_round_1'])}
-						{renderMatchup('conf_semis', 1, predictions['first_round_2'], predictions['first_round_3'])}
+					<div className="flex flex-col gap-24">
+						{renderMatchup('conf_semis', 0, bracket['first_round_0'], bracket['first_round_1'])}
+						{renderMatchup('conf_semis', 1, bracket['first_round_2'], bracket['first_round_3'])}
 					</div>
-					<div className="flex flex-col">
-						<span className="text-[8px] font-black text-blue-500/40 uppercase text-center mb-1">Finals</span>
-						{renderMatchup('conf_finals', 0, predictions['conf_semis_0'], predictions['conf_semis_1'])}
+					<div>
+						{renderMatchup('conf_finals', 0, bracket['conf_semis_0'], bracket['conf_semis_1'])}
 					</div>
 				</div>
 
-				{/* NBA FINALS CENTERPIECE */}
-				<div className="flex flex-col items-center gap-12 px-2">
-					<div className="text-center">
-						<div className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-4">NBA Finals</div>
-						{renderMatchup('finals', 0, predictions['conf_finals_0'], predictions['conf_finals_1'])}
-					</div>
-					<div className="flex flex-col items-center">
-						<div className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-4">Champion</div>
-						<div 
-							onClick={() => !isLocked && predictions['finals_0'] && handleWinnerSelect('champion', 0, predictions['finals_0'])}
-							className={`w-36 h-36 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer ${
-								predictions['champion_0'] 
-									? 'border-yellow-500 bg-yellow-500/5 shadow-2xl' 
-									: 'border-white/10 bg-black/40'
-							}`}
-						>
-							{predictions['champion_0'] ? (
-								<img src={getTeam(predictions['champion_0'])?.logo} alt="" className="w-24 h-24 object-contain" />
-							) : (
-								<span className="text-4xl opacity-10">🏆</span>
-							)}
-						</div>
+				{/* FINALS */}
+				<div className="flex flex-col items-center gap-8">
+					{renderMatchup('finals', 0, bracket['conf_finals_0'], bracket['conf_finals_1'], "NBA Finals")}
+					<div 
+						onClick={() => !isLocked && bracket['finals_0'] && handlePick('champion', 0, bracket['finals_0'])}
+						className={`w-28 h-28 rounded-full border-2 flex items-center justify-center cursor-pointer ${bracket['champion_0'] ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/10'}`}
+					>
+						{bracket['champion_0'] ? <img src={getTeam(bracket['champion_0'])?.logo} className="w-16 h-16 object-contain" /> : <span className="text-2xl">🏆</span>}
 					</div>
 				</div>
 
-				{/* EAST CONFERENCE */}
-				<div className="flex items-center gap-6 flex-row-reverse">
+				{/* EAST */}
+				<div className="flex items-center gap-4 flex-row-reverse">
 					<div className="flex flex-col gap-4">
-						<span className="text-[8px] font-black text-red-500/40 uppercase text-center mb-1">First Round</span>
-						{renderMatchup('first_round', 4, 'BOS', 'MIA')}
-						{renderMatchup('first_round', 5, 'CLE', 'ORL')}
-						{renderMatchup('first_round', 6, 'MIL', 'IND')}
-						{renderMatchup('first_round', 7, 'NYK', 'PHI')}
+						{renderMatchup('first_round', 4, standings.East[0], east78 || null, "1 vs 7/8")}
+						{renderMatchup('first_round', 5, standings.East[3], standings.East[4], "4 vs 5")}
+						{renderMatchup('first_round', 6, standings.East[2], standings.East[5], "3 vs 6")}
+						{renderMatchup('first_round', 7, standings.East[1], east910 || null, "2 vs 9/10")}
 					</div>
-					<div className="flex flex-col gap-28">
-						<span className="text-[8px] font-black text-red-500/40 uppercase text-center mb-1">Semis</span>
-						{renderMatchup('conf_semis', 2, predictions['first_round_4'], predictions['first_round_5'])}
-						{renderMatchup('conf_semis', 3, predictions['first_round_6'], predictions['first_round_7'])}
+					<div className="flex flex-col gap-24">
+						{renderMatchup('conf_semis', 2, bracket['first_round_4'], bracket['first_round_5'])}
+						{renderMatchup('conf_semis', 3, bracket['first_round_6'], bracket['first_round_7'])}
 					</div>
-					<div className="flex flex-col">
-						<span className="text-[8px] font-black text-red-500/40 uppercase text-center mb-1">Finals</span>
-						{renderMatchup('conf_finals', 1, predictions['conf_semis_2'], predictions['conf_semis_3'])}
+					<div>
+						{renderMatchup('conf_finals', 1, bracket['conf_semis_2'], bracket['conf_semis_3'])}
 					</div>
 				</div>
-
 			</div>
 
-			<div className="mt-12 flex justify-center">
-				<button 
-					onClick={handleSave} 
-					disabled={isLocked || loading} 
-					className="bg-orange-600 hover:bg-orange-500 text-white px-16 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl transition-all disabled:opacity-50"
-				>
-					{loading ? 'SAVING...' : 'SAVE BRACKET'}
-				</button>
-			</div>
+			<button 
+				onClick={handleSave} 
+				disabled={isLocked || loading} 
+				className="mt-12 bg-orange-600 text-white px-12 py-3 rounded-xl font-black text-xs uppercase tracking-widest disabled:opacity-50"
+			>
+				{loading ? 'SAVING...' : 'SAVE BRACKET'}
+			</button>
 		</div>
 	);
 }
