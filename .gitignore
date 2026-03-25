@@ -1,3 +1,14 @@
+# Project Reference & Scripts
+nba_project_reference.txt
+scripts/project_to_txt.py
+scripts/map_files.py
+scripts/organize_files.py
+
+# Optional: if you want to ignore the whole scripts folder but keep requirements.txt
+# scripts/
+# !scripts/requirements.txt
+# !scripts/main.py
+
 # Logs
 logs
 *.log
