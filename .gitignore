@@ -2,7 +2,7 @@
 nba_project_reference.txt
 scripts/project_to_txt.py
 scripts/map_files.py
-scripts/organize_files.py
+scripts/organize_files
 
 # Optional: if you want to ignore the whole scripts folder but keep requirements.txt
 # scripts/
