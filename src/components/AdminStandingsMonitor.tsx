@@ -5,8 +5,9 @@ export function AdminStandingsMonitor() {
 	const [standings, setStandings] = useState<any[]>([]);
 
 	const fetchStandings = async () => {
+		// Fetch from the official standings table
 		const { data } = await supabase
-			.from('actual_standings')
+			.from('official_regular_standings')
 			.select('team_id, wins, losses, actual_rank, conference')
 			.order('conference', { ascending: false })
 			.order('actual_rank', { ascending: true });

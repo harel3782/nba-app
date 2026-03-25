@@ -6,17 +6,17 @@ interface Props {
 	onClose: () => void;
 	leagueId: string;
 	currentName: string;
-	currentOpenDate: string | null;
-	currentLockDate: string | null;
+	currentRegularLockDate: string | null;
+	currentPlayoffLockDate: string | null;
 	currentScoringType: string;
 	onUpdate: () => void;
 	onDelete?: () => void;
 }
 
-export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, currentOpenDate, currentLockDate, currentScoringType, onUpdate, onDelete }: Props) {
+export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, currentRegularLockDate, currentPlayoffLockDate, currentScoringType, onUpdate, onDelete }: Props) {
 	const [name, setName] = useState(currentName);
-	const [openDate, setOpenDate] = useState(currentOpenDate ? new Date(currentOpenDate).toISOString().slice(0, 16) : '');
-	const [lockDate, setLockDate] = useState(currentLockDate ? new Date(currentLockDate).toISOString().slice(0, 16) : '');
+	const [regLockDate, setRegLockDate] = useState(currentRegularLockDate ? new Date(currentRegularLockDate).toISOString().slice(0, 16) : '');
+	const [playLockDate, setPlayLockDate] = useState(currentPlayoffLockDate ? new Date(currentPlayoffLockDate).toISOString().slice(0, 16) : '');
 	const [scoringType] = useState(currentScoringType || 'standard');
 	const [saving, setSaving] = useState(false);
 	const [deleting, setDeleting] = useState(false);
@@ -26,13 +26,12 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 	async function handleSave() {
 		setSaving(true);
 		
-		// Update the league with both open_at and lock_at dates
 		const { error } = await supabase
 			.from('leagues')
 			.update({
 				name,
-				open_at: openDate ? new Date(openDate).toISOString() : null,
-				lock_at: lockDate ? new Date(lockDate).toISOString() : null,
+				regular_season_lock_at: regLockDate ? new Date(regLockDate).toISOString() : null,
+				playoff_lock_at: playLockDate ? new Date(playLockDate).toISOString() : null,
 				scoring_type: scoringType
 			})
 			.eq('id', leagueId);
@@ -54,12 +53,15 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 		setDeleting(true);
 		
 		try {
-			const { error: err1 } = await supabase.from('predictions').delete().eq('league_id', leagueId);
+			// Cascade delete all user predictions before removing the league
+			const { error: err1 } = await supabase.from('user_regular_picks').delete().eq('league_id', leagueId);
+			// Note: If you also want to delete bracket picks on league deletion, add:
+			// await supabase.from('user_bracket_picks').delete().eq('league_id', leagueId);
 			if (err1) throw err1;
-			
+
 			const { error: err2 } = await supabase.from('league_members').delete().eq('league_id', leagueId);
 			if (err2) throw err2;
-			
+
 			const { data: deletedData, error: err3 } = await supabase.from('leagues').delete().eq('id', leagueId).select();
 			if (err3) throw err3;
 
@@ -94,20 +96,20 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 					
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Opens At</label>
+							<label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Regular Season Lock</label>
 							<input 
 								type="datetime-local" 
-								value={openDate} 
-								onChange={e => setOpenDate(e.target.value)} 
+								value={regLockDate} 
+								onChange={e => setRegLockDate(e.target.value)} 
 								className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none transition-colors text-xs"
 							/>
 						</div>
 						<div>
-							<label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Locks At</label>
+							<label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Playoff Bracket Lock</label>
 							<input 
 								type="datetime-local" 
-								value={lockDate} 
-								onChange={e => setLockDate(e.target.value)} 
+								value={playLockDate} 
+								onChange={e => setPlayLockDate(e.target.value)} 
 								className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none transition-colors text-xs"
 							/>
 						</div>

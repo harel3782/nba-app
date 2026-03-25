@@ -61,8 +61,9 @@ export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, c
 			.from('official_playoff_results')
 			.select('match_id, winning_team_id, actual_games');
 
+		// Fetch bracket predictions from the new table
 		const { data: predicts } = await supabase
-			.from('tournament_predictions')
+			.from('user_bracket_picks')
 			.select('user_id, stage_slug, team_id, predicted_games')
 			.eq('league_id', leagueId);
 

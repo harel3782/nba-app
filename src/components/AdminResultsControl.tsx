@@ -23,8 +23,9 @@ export function AdminResultsControl() {
 	}, []);
 
 	async function fetchData() {
+		// Fetch from the newly renamed official standings table
 		const { data: standings } = await supabase
-			.from('actual_standings')
+			.from('official_regular_standings')
 			.select('team_id, conference, actual_rank')
 			.order('actual_rank', { ascending: true });
 

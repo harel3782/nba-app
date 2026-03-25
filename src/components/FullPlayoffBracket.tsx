@@ -37,7 +37,8 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 
 	async function loadActualStandingsForBracket() {
 		setLoading(true);
-		const { data } = await supabase.from('actual_standings').select('team_id, actual_rank');
+		// Load official standings to seed the bracket
+		const { data } = await supabase.from('official_regular_standings').select('team_id, actual_rank');
 		const sMap: Record<string, number> = {};
 		data?.forEach(s => { sMap[s.team_id] = s.actual_rank; });
 
@@ -51,7 +52,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 	}
 
 	async function loadBracketPicks() {
-		const { data } = await supabase.from('tournament_predictions').select('*').eq('user_id', userId).eq('league_id', leagueId);
+		const { data } = await supabase.from('user_bracket_picks').select('*').eq('user_id', userId).eq('league_id', leagueId);
 		if (data) {
 			const loaded: Record<string, BracketPick> = {};
 			data.forEach(row => {
@@ -69,8 +70,9 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 			user_id: userId, league_id: leagueId, stage_slug: slug, team_id: p.team!.id, predicted_games: p.games
 		}));
 		try {
-			await supabase.from('tournament_predictions').delete().eq('user_id', userId).eq('league_id', leagueId);
-			if (toInsert.length > 0) await supabase.from('tournament_predictions').insert(toInsert);
+			// Delete old picks and insert new ones
+			await supabase.from('user_bracket_picks').delete().eq('user_id', userId).eq('league_id', leagueId);
+			if (toInsert.length > 0) await supabase.from('user_bracket_picks').insert(toInsert);
 			
 			setSaveSuccess(true);
 			

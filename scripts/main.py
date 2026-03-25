@@ -59,7 +59,7 @@ def update_standings():
 	# Fetch existing ranks to preserve trend history before deleting
 	print("Fetching existing ranks from DB...")
 	try:
-		existing_data = supabase.table("actual_standings").select("team_id, actual_rank").execute()
+		existing_data = supabase.table("official_regular_standings").select("team_id, actual_rank").execute()
 		old_ranks = {item['team_id']: int(item['actual_rank']) for item in existing_data.data if item.get('actual_rank') is not None}
 	except Exception as e:
 		print(f"⚠️ Warning: Could not fetch old ranks. Proceeding without trends. ({e})")
@@ -107,10 +107,10 @@ def update_standings():
 
 	try:
 		print("Wiping old standings from database...")
-		supabase.table('actual_standings').delete().in_('conference', ['East', 'West']).execute()
+		supabase.table('official_regular_standings').delete().in_('conference', ['East', 'West']).execute()
 		
 		print("Inserting fresh data (now with trends)...")
-		supabase.table('actual_standings').insert(db_rows).execute()
+		supabase.table('official_regular_standings').insert(db_rows).execute()
 		
 		print("✅ Update finished successfully!")
 	except Exception as e:

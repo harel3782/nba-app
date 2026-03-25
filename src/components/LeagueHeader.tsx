@@ -18,12 +18,31 @@ export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, se
 
 	const getWindowMessage = () => {
 		const now = new Date();
-		const openAt = leagueDetails.open_at ? new Date(leagueDetails.open_at) : null;
-		const lockAt = leagueDetails.lock_at ? new Date(leagueDetails.lock_at) : null;
+		const regLock = leagueDetails.regular_season_lock_at ? new Date(leagueDetails.regular_season_lock_at) : null;
+		const playLock = leagueDetails.playoff_lock_at ? new Date(leagueDetails.playoff_lock_at) : null;
 
-		if (openAt && now < openAt) return <span className="text-yellow-400 bg-yellow-900/30 px-3 py-1 rounded-full border border-yellow-500/30 text-xs font-bold">⏳ Opens: {openAt.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>;
-		if (lockAt && now > lockAt) return <span className="text-red-400 bg-red-900/30 px-3 py-1 rounded-full border border-red-500/30 text-xs font-bold">🔒 Locked: {lockAt.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>;
-		return <span className="text-green-400 bg-green-900/30 px-3 py-1 rounded-full border border-green-500/30 text-xs font-bold">🟢 Window Open</span>;
+		const isRegLocked = regLock && now > regLock;
+		const isPlayLocked = playLock && now > playLock;
+
+		if (isRegLocked && isPlayLocked) {
+			return <span className="text-red-400 bg-red-900/30 px-3 py-1 rounded-full border border-red-500/30 text-[10px] font-bold">🔒 ALL PREDICTIONS LOCKED</span>;
+		}
+
+		return (
+			<div className="flex flex-col gap-1.5 items-end">
+				{isRegLocked ? (
+					<span className="text-red-400 bg-red-900/30 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-500/30">🔒 REGULAR SEASON: LOCKED</span>
+				) : (
+					regLock && <span className="text-yellow-400 bg-yellow-900/30 px-2.5 py-0.5 rounded text-[10px] font-bold border border-yellow-500/30">⏳ REGULAR LOCKS: {regLock.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+				)}
+				
+				{isPlayLocked ? (
+					<span className="text-red-400 bg-red-900/30 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-500/30">🔒 PLAYOFFS: LOCKED</span>
+				) : (
+					playLock && <span className="text-yellow-400 bg-yellow-900/30 px-2.5 py-0.5 rounded text-[10px] font-bold border border-yellow-500/30">⏳ PLAYOFFS LOCK: {playLock.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+				)}
+			</div>
+		);
 	};
 
 	return (
@@ -37,14 +56,16 @@ export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, se
 						<span>ID: {currentLeagueId}</span>
 						{copySuccess ? <span className="text-green-400 font-bold">✓ Copied</span> : <span>📋</span>}
 					</div>
-					{getWindowMessage()}
 				</div>
 			</div>
-			{isLeagueAdmin && (
-				<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2 font-bold">
-					⚙️ League Settings
-				</button>
-			)}
+			<div className="flex flex-col items-end gap-3">
+				{getWindowMessage()}
+				{isLeagueAdmin && (
+					<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2 font-bold">
+						⚙️ League Settings
+					</button>
+				)}
+			</div>
 		</div>
 	);
 }

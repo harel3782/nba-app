@@ -42,7 +42,7 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 	async function loadUserPredictionsAndStandings() {
 		setInitialLoad(true);
 		const { data: predData } = await supabase
-			.from('predictions')
+			.from('user_regular_picks')
 			.select('team_id, predicted_rank')
 			.eq('user_id', userId)
 			.eq('league_id', leagueId)
@@ -50,7 +50,7 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 			.order('predicted_rank', { ascending: true });
 
 		const { data: actualData } = await supabase
-			.from('actual_standings')
+			.from('official_regular_standings')
 			.select('team_id, actual_rank')
 			.in('team_id', conferenceTeams.map((t) => t.id));
 
@@ -88,7 +88,8 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 			predicted_rank: index + 1,
 			conference: conference,
 		}));
-		const { error } = await supabase.from('predictions').upsert(predictionsToUpsert, { onConflict: 'user_id, league_id, team_id' });
+		// Upsert predictions into the new table
+		const { error } = await supabase.from('user_regular_picks').upsert(predictionsToUpsert, { onConflict: 'user_id, league_id, team_id' });
 		if (error) { console.error('Error saving:', error); alert('Error saving predictions'); }
 		else if (onSave) onSave();
 	}

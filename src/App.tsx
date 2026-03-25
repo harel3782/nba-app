@@ -14,8 +14,8 @@ interface LeagueDetails {
 	id: string;
 	name: string;
 	created_by: string;
-	open_at: string | null;
-	lock_at: string | null;
+	regular_season_lock_at: string | null;
+	playoff_lock_at: string | null;
 	scoring_type: string;
 }
 
@@ -97,19 +97,14 @@ function App() {
 		}, 1500);
 	};
 
-	const isLeagueLocked = () => {
-		if (!leagueDetails) return false;
-		const now = new Date();
-		const openAt = leagueDetails.open_at ? new Date(leagueDetails.open_at) : null;
-		const lockAt = leagueDetails.lock_at ? new Date(leagueDetails.lock_at) : null;
-		return (openAt && now < openAt) || (lockAt && now > lockAt);
-	};
+	const now = new Date();
+	const regularLocked = leagueDetails?.regular_season_lock_at ? now > new Date(leagueDetails.regular_season_lock_at) : false;
+	const playoffLocked = leagueDetails?.playoff_lock_at ? now > new Date(leagueDetails.playoff_lock_at) : false;
 
 	if (!session) return <Auth />;
 	if (loading && !leagueDetails) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-4xl animate-spin">🏀</div>;
 
 	const isSuperAdmin = session.user.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
-	const locked = isLeagueLocked();
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[#1D428A] to-[#002B5C] text-white font-sans selection:bg-orange-400 selection:text-black">
@@ -131,8 +126,8 @@ function App() {
 					onClose={() => setIsSettingsOpen(false)} 
 					leagueId={leagueDetails.id} 
 					currentName={leagueDetails.name} 
-					currentOpenDate={leagueDetails.open_at} 
-					currentLockDate={leagueDetails.lock_at} 
+					currentRegularLockDate={leagueDetails.regular_season_lock_at} 
+					currentPlayoffLockDate={leagueDetails.playoff_lock_at} 
 					currentScoringType={leagueDetails.scoring_type} 
 					onUpdate={() => { fetchLeagueData(leagueDetails.id); setRefreshTrigger(p => p + 1); }} 
 					onDelete={() => { setCurrentLeagueId(null); setLeagueDetails(null); setIsSettingsOpen(false); }} 
@@ -187,7 +182,8 @@ function App() {
 							activeTab={activeTab}
 							session={session}
 							currentLeagueId={currentLeagueId}
-							locked={!!locked}
+							regularLocked={regularLocked}
+							playoffLocked={playoffLocked}
 							triggerSave={triggerSave}
 							isUpdatingScores={isUpdatingScores}
 							handleGlobalSave={handleGlobalSave}

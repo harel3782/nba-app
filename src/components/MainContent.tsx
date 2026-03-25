@@ -7,7 +7,8 @@ interface MainContentProps {
 	activeTab: 'standings' | 'leaderboard' | 'bracket';
 	session: any;
 	currentLeagueId: string;
-	locked: boolean;
+	regularLocked: boolean;
+	playoffLocked: boolean;
 	triggerSave: number;
 	isUpdatingScores: boolean;
 	handleGlobalSave: () => void;
@@ -20,7 +21,8 @@ export function MainContent({
 	activeTab,
 	session,
 	currentLeagueId,
-	locked,
+	regularLocked,
+	playoffLocked,
 	triggerSave,
 	isUpdatingScores,
 	handleGlobalSave,
@@ -33,10 +35,10 @@ export function MainContent({
 			{activeTab === 'standings' && (
 				<div className="flex flex-col items-center gap-8 w-full animate-fade-in pb-20">
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl mx-auto">
-						<BettingBoard conference="West" userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} triggerSave={triggerSave} />
-						<BettingBoard conference="East" userId={session.user.id} leagueId={currentLeagueId} isLocked={locked} triggerSave={triggerSave} />
+						<BettingBoard conference="West" userId={session.user.id} leagueId={currentLeagueId} isLocked={regularLocked} triggerSave={triggerSave} />
+						<BettingBoard conference="East" userId={session.user.id} leagueId={currentLeagueId} isLocked={regularLocked} triggerSave={triggerSave} />
 					</div>
-					{!locked && (
+					{!regularLocked && (
 						<button onClick={handleGlobalSave} disabled={isUpdatingScores} className="mt-4 px-12 py-4 bg-green-600 rounded-xl font-black uppercase tracking-widest text-white shadow-xl hover:scale-105 transition-all">
 							{isUpdatingScores ? 'Saving...' : 'Save All Predictions'}
 						</button>
@@ -69,7 +71,7 @@ export function MainContent({
 						<FullPlayoffBracket 
 							userId={session.user.id} 
 							leagueId={currentLeagueId} 
-							isLocked={locked} 
+							isLocked={playoffLocked} 
 							triggerSave={triggerSave}
 							onSaveSuccess={forceRefresh}
 						/>

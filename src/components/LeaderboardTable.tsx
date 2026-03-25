@@ -44,8 +44,9 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 			.eq('league_id', leagueId)
 			.order('total_score', { ascending: false });
 
-		const { data: actualData } = await supabase.from('actual_standings').select('team_id, actual_rank, previous_rank');
-		const { data: predsData } = await supabase.from('predictions').select('user_id, team_id, predicted_rank').eq('league_id', leagueId);
+		// Fetch official rankings and user picks using updated table names
+		const { data: actualData } = await supabase.from('official_regular_standings').select('team_id, actual_rank, previous_rank');
+		const { data: predsData } = await supabase.from('user_regular_picks').select('user_id, team_id, predicted_rank').eq('league_id', leagueId);
 
 		const sMap: Record<string, Standing> = {};
 		actualData?.forEach(s => sMap[s.team_id] = s);
