@@ -6,7 +6,7 @@ interface Props {
 	onClose: () => void;
 	currentName: string;
 	userId: string;
-	onUpdate: (newName: string) => void; // פונקציה לעדכון השם במסך הראשי
+	onUpdate: (newName: string) => void;
 }
 
 export function ProfileModal({ isOpen, onClose, currentName, userId, onUpdate }: Props) {
@@ -20,26 +20,32 @@ export function ProfileModal({ isOpen, onClose, currentName, userId, onUpdate }:
 		setLoading(true);
 
 		try {
-			// 1. Update the profiles table (for the table)
+			// 1. Update the profiles table
 			const { error } = await supabase
 				.from('profiles')
 				.update({ username: username })
 				.eq('id', userId);
 
-			if (error) throw error;
+			if (error) console.warn("Profile table update issue:", error);
 
-			// 2. Update user metadata (for the header and session)
+			// 2. Update user metadata for Auth
 			await supabase.auth.updateUser({
 				data: { display_name: username },
 			});
 
-			// notify the app that the name changed
+			// 3. Force refresh the Materialized View in Supabase quietly
+			supabase.rpc('refresh_all_leaderboards').then(({ error: rpcError }) => {
+				if (rpcError) console.warn('RPC error:', rpcError);
+			});
+
+			// 4. Update UI immediately without waiting for DB sync
 			onUpdate(username);
 			onClose();
+			setLoading(false);
+
 		} catch (error) {
 			console.error('Error updating profile:', error);
 			alert('Failed to update profile');
-		} finally {
 			setLoading(false);
 		}
 	}
@@ -69,13 +75,15 @@ export function ProfileModal({ isOpen, onClose, currentName, userId, onUpdate }:
 							onChange={(e) => setUsername(e.target.value)}
 							className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 transition-colors placeholder-white/30"
 							placeholder="Enter your name..."
+							disabled={loading}
 						/>
 					</div>
 
 					<div className="flex gap-3 mt-6">
 						<button
 							onClick={onClose}
-							className="flex-1 py-3 rounded-lg font-bold text-blue-200 hover:bg-white/5 transition-colors"
+							disabled={loading}
+							className="flex-1 py-3 rounded-lg font-bold text-blue-200 hover:bg-white/5 transition-colors disabled:opacity-50"
 						>
 							Cancel
 						</button>

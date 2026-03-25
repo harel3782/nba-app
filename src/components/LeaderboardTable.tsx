@@ -6,6 +6,7 @@ interface Props {
 	leagueId: string;
 	currentUserId: string;
 	refreshTrigger?: number;
+	currentUserName?: string;
 }
 
 interface LeaderboardEntry {
@@ -22,7 +23,7 @@ interface Standing {
 	previous_rank: number;
 }
 
-export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger }: Props) {
+export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, currentUserName }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 	const [standings, setStandings] = useState<Record<string, Standing>>({});
@@ -37,14 +38,12 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger }: Pr
 
 	async function fetchFullLeaderboardData() {
 		setLoading(true);
-
 		const { data: lbData } = await supabase
 			.from('leaderboard')
 			.select('user_id, username, total_score, west_score, east_score')
 			.eq('league_id', leagueId)
 			.order('total_score', { ascending: false });
 
-		// Fetch actual_rank AND previous_rank for trends
 		const { data: actualData } = await supabase.from('actual_standings').select('team_id, actual_rank, previous_rank');
 		const { data: predsData } = await supabase.from('predictions').select('user_id, team_id, predicted_rank').eq('league_id', leagueId);
 
@@ -65,11 +64,9 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger }: Pr
 
 	const renderTrend = (teamId: string) => {
 		const s = standings[teamId];
-		// If no previous rank exists, or rank hasn't changed
 		if (!s || !s.previous_rank || s.previous_rank === s.actual_rank) {
 			return <span className="text-gray-600 text-[10px] w-4 text-center">●</span>;
 		}
-		// A lower number means a higher rank (e.g., going from 5 to 3 is good)
 		return s.previous_rank > s.actual_rank ? (
 			<span className="text-green-500 text-[10px] w-4 text-center font-black animate-pulse">▲</span>
 		) : (
@@ -117,7 +114,9 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger }: Pr
 							{leaderboard.map((user) => (
 								<th key={user.user_id} className={`p-3 border-b border-white/5 text-center min-w-[5rem] ${user.user_id === currentUserId ? 'bg-orange-900/20 text-orange-300' : ''}`}>
 									<div className="flex flex-col items-center">
-										<span className="text-white text-[11px] truncate max-w-[4.5rem]">{user.username}</span>
+										<span className="text-white text-[11px] truncate max-w-[4.5rem]">
+											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
+										</span>
 										<span className="text-green-400 text-[10px] font-black">{conf === 'West' ? (user.west_score || 0) : (user.east_score || 0)} PTS</span>
 									</div>
 								</th>
@@ -131,12 +130,9 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger }: Pr
 								<tr key={team.id} className="border-b border-white/5 hover:bg-white/5">
 									<td className="sticky left-0 bg-[#162032] z-10 p-2 lg:p-3 flex items-center gap-2 lg:gap-3">
 										<span className="text-gray-500 font-black w-3 text-[10px]">{idx + 1}.</span>
-										
-										{/* Trending Arrow added here */}
 										<div className="flex items-center justify-center">
 											{renderTrend(team.id)}
 										</div>
-
 										<img src={team.logo} className="w-5 h-5 lg:w-6 lg:h-6 object-contain" />
 										<span className="font-bold text-gray-200 text-xs">{team.id}</span>
 									</td>
@@ -159,16 +155,12 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger }: Pr
 
 	const westTeams = [...NBA_TEAMS.filter(t => t.conference === 'West')].sort((a, b) => (standings[a.id]?.actual_rank ?? 99) - (standings[b.id]?.actual_rank ?? 99));
 	const eastTeams = [...NBA_TEAMS.filter(t => t.conference === 'East')].sort((a, b) => (standings[a.id]?.actual_rank ?? 99) - (standings[b.id]?.actual_rank ?? 99));
-
 	const leaderScore = leaderboard[0]?.total_score || 0;
 
 	return (
 		<div className="w-full flex flex-col gap-6 items-center">
-			
-			{/* Mini Summary Board */}
 			<div className="w-full max-w-xl bg-black/40 rounded-2xl border border-white/10 p-4 shadow-xl">
 				<h4 className="text-center text-[10px] font-black uppercase tracking-[0.3em] text-orange-400 mb-4 italic">Overall Scoreboard</h4>
-				
 				<div className="grid grid-cols-5 gap-2 text-center border-b border-white/5 pb-2 mb-2 text-[9px] font-black text-gray-500 uppercase tracking-widest">
 					<div className="text-left pl-2">Player</div>
 					<div>West</div>
@@ -176,33 +168,30 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger }: Pr
 					<div className="text-white">Total</div>
 					<div className="text-orange-500/80">Diff</div>
 				</div>
-
 				<div className="space-y-1">
 					{leaderboard.length === 0 ? (
 						<div className="col-span-5 text-center py-4 text-gray-500 text-xs uppercase tracking-widest">Waiting for predictions...</div>
 					) : (
 						leaderboard.map((user, idx) => {
 							const diff = user.total_score - leaderScore;
-							
 							return (
 								<div key={user.user_id} className={`grid grid-cols-5 gap-2 text-center py-2 rounded-lg transition-colors ${user.user_id === currentUserId ? 'bg-orange-500/10 border border-orange-500/20' : 'hover:bg-white/5'}`}>
 									<div className="text-left pl-2 flex items-center gap-2">
 										<span className="text-[10px] font-black text-gray-600">{idx + 1}.</span>
-										<span className="font-bold text-gray-200 text-xs truncate">{user.username}</span>
+										<span className="font-bold text-gray-200 text-xs truncate">
+											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
+										</span>
 									</div>
 									<div className="text-blue-400 font-bold text-xs">{user.west_score || 0}</div>
 									<div className="text-blue-400 font-bold text-xs">{user.east_score || 0}</div>
 									<div className="text-green-400 font-black text-xs">{user.total_score || 0}</div>
-									<div className="text-orange-500/70 text-xs font-bold">
-										{diff === 0 ? '-' : diff}
-									</div>
+									<div className="text-orange-500/70 text-xs font-bold">{diff === 0 ? '-' : diff}</div>
 								</div>
 							);
 						})
 					)}
 				</div>
 			</div>
-
 			{leaderboard.length > 0 && (
 				<div className="w-full flex flex-col lg:flex-row gap-6 items-start">
 					{renderConferenceTable('Western', westTeams, 'West')}

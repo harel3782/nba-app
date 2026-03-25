@@ -7,297 +7,208 @@ interface Props {
 	leagueId: string;
 	isLocked: boolean;
 	triggerSave?: number;
+	onSaveSuccess?: () => void;
 }
 
-export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave }: Props) {
+interface BracketPick {
+	team: Team | null;
+	games: number;
+}
+
+export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, onSaveSuccess }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveSuccess, setSaveSuccess] = useState(false);
 	
 	const [westSeeds, setWestSeeds] = useState<Team[]>([]);
 	const [eastSeeds, setEastSeeds] = useState<Team[]>([]);
-	
-	// State to hold all the interactive picks
-	const [picks, setPicks] = useState<Record<string, Team | null>>({});
-
-	const westTeamsList = NBA_TEAMS.filter((t) => t.conference === 'West');
-	const eastTeamsList = NBA_TEAMS.filter((t) => t.conference === 'East');
+	const [picks, setPicks] = useState<Record<string, BracketPick>>({});
 
 	useEffect(() => {
 		if (userId && leagueId) {
 			loadActualStandingsForBracket();
 			loadBracketPicks();
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userId, leagueId]);
 
-	// Listen to the global save trigger from App.tsx
 	useEffect(() => {
-		if (triggerSave && triggerSave > 0) {
-			saveBracket();
-		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		if (triggerSave && triggerSave > 0) saveBracket();
 	}, [triggerSave]);
 
 	async function loadActualStandingsForBracket() {
 		setLoading(true);
-		
-		const { data: actualData } = await supabase
-			.from('actual_standings')
-			.select('team_id, actual_rank');
+		const { data } = await supabase.from('actual_standings').select('team_id, actual_rank');
+		const sMap: Record<string, number> = {};
+		data?.forEach(s => { sMap[s.team_id] = s.actual_rank; });
 
-		const standingsMap: Record<string, number> = {};
-		if (actualData) {
-			actualData.forEach(s => {
-				standingsMap[s.team_id] = s.actual_rank;
-			});
-		}
+		const sortFn = (a: Team, b: Team) => (sMap[a.id] ?? 99) - (sMap[b.id] ?? 99);
+		const wTeams = NBA_TEAMS.filter(t => t.conference === 'West');
+		const eTeams = NBA_TEAMS.filter(t => t.conference === 'East');
 
-		const sortedWest = [...westTeamsList].sort((a, b) => {
-			const rankA = standingsMap[a.id] ?? 99;
-			const rankB = standingsMap[b.id] ?? 99;
-			return rankA - rankB;
-		});
-
-		const sortedEast = [...eastTeamsList].sort((a, b) => {
-			const rankA = standingsMap[a.id] ?? 99;
-			const rankB = standingsMap[b.id] ?? 99;
-			return rankA - rankB;
-		});
-
-		setWestSeeds(sortedWest.slice(0, 10));
-		setEastSeeds(sortedEast.slice(0, 10));
-
+		setWestSeeds([...wTeams].sort(sortFn).slice(0, 10));
+		setEastSeeds([...eTeams].sort(sortFn).slice(0, 10));
 		setLoading(false);
 	}
 
 	async function loadBracketPicks() {
-		const { data, error } = await supabase
-			.from('tournament_predictions')
-			.select('stage_slug, team_id')
-			.eq('user_id', userId)
-			.eq('league_id', leagueId);
-
-		if (error) {
-			console.error("Error loading bracket picks:", error);
-			return;
-		}
-
-		if (data && data.length > 0) {
-			const loadedPicks: Record<string, Team | null> = {};
-			data.forEach((row) => {
+		const { data } = await supabase.from('tournament_predictions').select('*').eq('user_id', userId).eq('league_id', leagueId);
+		if (data) {
+			const loaded: Record<string, BracketPick> = {};
+			data.forEach(row => {
 				const team = NBA_TEAMS.find(t => t.id === row.team_id);
-				if (team) {
-					loadedPicks[row.stage_slug] = team;
-				}
+				if (team) loaded[row.stage_slug] = { team, games: row.predicted_games || (row.stage_slug.includes('pi_') ? 1 : 4) };
 			});
-			setPicks(loadedPicks);
+			setPicks(loaded);
 		}
 	}
 
 	async function saveBracket() {
 		if (isLocked) return;
 		setIsSaving(true);
-
-		const predictionsToInsert = Object.entries(picks)
-			.filter(([_, team]) => team !== null)
-			.map(([stage_slug, team]) => ({
-				user_id: userId,
-				league_id: leagueId,
-				stage_slug: stage_slug,
-				team_id: team!.id
-			}));
-
+		const toInsert = Object.entries(picks).filter(([_, p]) => p.team).map(([slug, p]) => ({
+			user_id: userId, league_id: leagueId, stage_slug: slug, team_id: p.team!.id, predicted_games: p.games
+		}));
 		try {
-			const { error: deleteError } = await supabase
-				.from('tournament_predictions')
-				.delete()
-				.eq('user_id', userId)
-				.eq('league_id', leagueId);
-
-			if (deleteError) throw deleteError;
-
-			if (predictionsToInsert.length > 0) {
-				const { error: insertError } = await supabase
-					.from('tournament_predictions')
-					.insert(predictionsToInsert);
-
-				if (insertError) throw insertError;
-			}
-
+			await supabase.from('tournament_predictions').delete().eq('user_id', userId).eq('league_id', leagueId);
+			if (toInsert.length > 0) await supabase.from('tournament_predictions').insert(toInsert);
+			
 			setSaveSuccess(true);
+			
+			// ⏳ Added a 500ms delay to prevent Race Conditions with Supabase
+			if (onSaveSuccess) {
+				setTimeout(() => {
+					onSaveSuccess();
+				}, 500);
+			}
+			
 			setTimeout(() => setSaveSuccess(false), 3000);
-		} catch (error: any) {
-			console.error('Error saving bracket:', error);
-			alert('Error saving bracket picks: ' + error.message);
-		} finally {
-			setIsSaving(false);
+		} catch (e) { 
+			console.error(e); 
+		} finally { 
+			setIsSaving(false); 
 		}
 	}
 
 	const makePick = (key: string, team: Team | null) => {
 		if (isLocked || !team) return;
 		setPicks((prev) => {
-			if (prev[key]?.id === team.id) return prev;
-			
-			const next = { ...prev, [key]: team };
-			
-			// WEST Cascades
-			if (key === 'W_PI_78') { next['W_PI_8TH'] = null; next['W_R1_1'] = null; next['W_R1_4'] = null; next['W_R2_1'] = null; next['W_R2_2'] = null; next['W_CF'] = null; next['FINALS'] = null; }
-			if (key === 'W_PI_910') { next['W_PI_8TH'] = null; next['W_R1_1'] = null; next['W_R2_1'] = null; next['W_CF'] = null; next['FINALS'] = null; }
-			if (key === 'W_PI_8TH') { next['W_R1_1'] = null; next['W_R2_1'] = null; next['W_CF'] = null; next['FINALS'] = null; }
-			if (key === 'W_R1_1' || key === 'W_R1_2') { next['W_R2_1'] = null; next['W_CF'] = null; next['FINALS'] = null; }
-			if (key === 'W_R1_3' || key === 'W_R1_4') { next['W_R2_2'] = null; next['W_CF'] = null; next['FINALS'] = null; }
-			if (key === 'W_R2_1' || key === 'W_R2_2') { next['W_CF'] = null; next['FINALS'] = null; }
-			if (key === 'W_CF') { next['FINALS'] = null; }
+			if (prev[key]?.team?.id === team.id) return prev;
+			const next = { ...prev, [key]: { team, games: key.includes('_PI_') ? 1 : 4 } };
 
-			// EAST Cascades
-			if (key === 'E_PI_78') { next['E_PI_8TH'] = null; next['E_R1_1'] = null; next['E_R1_4'] = null; next['E_R2_1'] = null; next['E_R2_2'] = null; next['E_CF'] = null; next['FINALS'] = null; }
-			if (key === 'E_PI_910') { next['E_PI_8TH'] = null; next['E_R1_1'] = null; next['E_R2_1'] = null; next['E_CF'] = null; next['FINALS'] = null; }
-			if (key === 'E_PI_8TH') { next['E_R1_1'] = null; next['E_R2_1'] = null; next['E_CF'] = null; next['FINALS'] = null; }
-			if (key === 'E_R1_1' || key === 'E_R1_2') { next['E_R2_1'] = null; next['E_CF'] = null; next['FINALS'] = null; }
-			if (key === 'E_R1_3' || key === 'E_R1_4') { next['E_R2_2'] = null; next['E_CF'] = null; next['FINALS'] = null; }
-			if (key === 'E_R2_1' || key === 'E_R2_2') { next['E_CF'] = null; next['FINALS'] = null; }
-			if (key === 'E_CF') { next['FINALS'] = null; }
-
+			// Targetted Cascade Resets
+			const cascades: Record<string, string[]> = {
+				'W_PI_78': ['W_PI_8TH', 'W_R1_1', 'W_R1_4', 'W_R2_1', 'W_R2_2', 'W_CF', 'FINALS'],
+				'W_PI_910': ['W_PI_8TH', 'W_R1_1', 'W_R2_1', 'W_CF', 'FINALS'],
+				'W_PI_8TH': ['W_R1_1', 'W_R2_1', 'W_CF', 'FINALS'],
+				'W_R1_1': ['W_R2_1', 'W_CF', 'FINALS'], 'W_R1_2': ['W_R2_1', 'W_CF', 'FINALS'],
+				'W_R1_3': ['W_R2_2', 'W_CF', 'FINALS'], 'W_R1_4': ['W_R2_2', 'W_CF', 'FINALS'],
+				'W_R2_1': ['W_CF', 'FINALS'], 'W_R2_2': ['W_CF', 'FINALS'], 'W_CF': ['FINALS'],
+				'E_PI_78': ['E_PI_8TH', 'E_R1_1', 'E_R1_4', 'E_R2_1', 'E_R2_2', 'E_CF', 'FINALS'],
+				'E_PI_910': ['E_PI_8TH', 'E_R1_1', 'E_R2_1', 'E_CF', 'FINALS'],
+				'E_PI_8TH': ['E_R1_1', 'E_R2_1', 'E_CF', 'FINALS'],
+				'E_R1_1': ['E_R2_1', 'E_CF', 'FINALS'], 'E_R1_2': ['E_R2_1', 'E_CF', 'FINALS'],
+				'E_R1_3': ['E_R2_2', 'E_CF', 'FINALS'], 'E_R1_4': ['E_R2_2', 'E_CF', 'FINALS'],
+				'E_R2_1': ['E_CF', 'FINALS'], 'E_R2_2': ['E_CF', 'FINALS'], 'E_CF': ['FINALS']
+			};
+			if (cascades[key]) {
+				cascades[key].forEach(childKey => {
+					const currentWinner = prev[key]?.team;
+					if (next[childKey]?.team?.id === currentWinner?.id) {
+						next[childKey] = { team: null, games: childKey.includes('_PI_') ? 1 : 4 };
+					}
+				});
+			}
 			return next;
 		});
 	};
 
-	const getLoser = (teamA?: Team | null, teamB?: Team | null, winner?: Team | null) => {
-		if (!winner || !teamA || !teamB) return null;
-		return winner.id === teamA.id ? teamB : teamA;
+	const updateGames = (key: string, games: number) => {
+		if (isLocked) return;
+		setPicks(prev => ({ ...prev, [key]: { ...prev[key], games } }));
 	};
 
-	const MatchupBox = ({ teamA, teamB, label, seedA, seedB, isFinals = false, winner, onPickA, onPickB }: any) => {
-		const isSelected = (t: any) => winner && t && winner.id === t.id;
-		const isLoser = (t: any) => winner && t && winner.id !== t.id;
-
+	const MatchupBox = ({ teamA, teamB, label, seedA, seedB, isFinals = false, stageKey }: any) => {
+		const current = picks[stageKey] || { team: null, games: stageKey.includes('_PI_') ? 1 : 4 };
+		const isSelected = (t: any) => current.team && t && current.team.id === t.id;
 		return (
-			<div className={`
-				bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-lg w-24 lg:w-28 flex flex-col overflow-hidden shadow-lg transition-all duration-300 transform hover:-translate-y-1
-				${isFinals ? 'border border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border border-white/10 hover:border-orange-500/50'}
-			`}>
-				<div className={`text-[7px] lg:text-[8px] font-black uppercase tracking-widest text-center py-1 border-b border-white/5 
-					${isFinals ? 'bg-yellow-500/20 text-yellow-500' : 'bg-black/40 text-gray-400'}
-				`}>
-					{label}
+			<div className={`flex flex-col bg-[#0f172a] rounded-lg w-28 lg:w-32 overflow-hidden shadow-xl border ${isFinals ? 'border-yellow-500/50' : 'border-white/10'}`}>
+				<div className="text-[8px] font-black uppercase py-1 bg-black/40 text-gray-400 text-center">{label}</div>
+				<div className="p-1 space-y-1">
+					{[ {t: teamA, s: seedA}, {t: teamB, s: seedB} ].map((item, i) => (
+						<button key={i} disabled={!item.t || isLocked} onClick={() => makePick(stageKey, item.t)}
+							className={`w-full flex items-center gap-1.5 p-1 rounded transition-colors text-[9px] font-bold ${isSelected(item.t) ? 'bg-orange-500/20 border border-orange-500' : 'bg-white/5 border border-transparent'}`}>
+							<span className="text-gray-500 w-3 text-right">{item.s}</span>
+							{item.t ? (<><img src={item.t.logo} className="w-4 h-4 object-contain" /> <span className={isSelected(item.t) ? 'text-orange-400' : 'text-gray-300'}>{item.t.id}</span></>) : <span className="text-gray-600 italic">TBD</span>}
+						</button>
+					))}
 				</div>
-				<div className="flex flex-col p-1 gap-0.5">
-					<button 
-						disabled={!teamA || !teamB || isLocked} 
-						onClick={onPickA}
-						className={`flex items-center gap-1.5 p-1 rounded transition-colors group text-left ${!teamA || !teamB || isLocked ? 'cursor-default' : 'cursor-pointer hover:bg-white/10'}
-							${isSelected(teamA) ? 'bg-orange-500/20 border border-orange-500' : 'bg-white/5 border border-transparent'}
-							${isLoser(teamA) ? 'opacity-30' : ''}
-						`}>
-						<span className="text-gray-500 text-[8px] lg:text-[9px] font-black w-3 text-right">{seedA}</span>
-						{teamA ? (
-							<>
-								<img src={teamA.logo} alt={teamA.id} className="w-4 h-4 lg:w-5 lg:h-5 object-contain drop-shadow-md" />
-								<span className={`text-[9px] lg:text-[10px] font-bold truncate tracking-wider ${isSelected(teamA) ? 'text-orange-400' : 'text-gray-200 group-hover:text-white'}`}>{teamA.id}</span>
-							</>
-						) : (
-							<span className="text-[9px] lg:text-[10px] font-bold text-gray-600 italic">TBD</span>
-						)}
-					</button>
-					<button 
-						disabled={!teamA || !teamB || isLocked} 
-						onClick={onPickB}
-						className={`flex items-center gap-1.5 p-1 rounded transition-colors group text-left ${!teamA || !teamB || isLocked ? 'cursor-default' : 'cursor-pointer hover:bg-white/10'}
-							${isSelected(teamB) ? 'bg-orange-500/20 border border-orange-500' : 'bg-white/5 border border-transparent'}
-							${isLoser(teamB) ? 'opacity-30' : ''}
-						`}>
-						<span className="text-gray-500 text-[8px] lg:text-[9px] font-black w-3 text-right">{seedB}</span>
-						{teamB ? (
-							<>
-								<img src={teamB.logo} alt={teamB.id} className="w-4 h-4 lg:w-5 lg:h-5 object-contain drop-shadow-md" />
-								<span className={`text-[9px] lg:text-[10px] font-bold truncate tracking-wider ${isSelected(teamB) ? 'text-orange-400' : 'text-gray-200 group-hover:text-white'}`}>{teamB.id}</span>
-							</>
-						) : (
-							<span className="text-[9px] lg:text-[10px] font-bold text-gray-600 italic">TBD</span>
-						)}
-					</button>
-				</div>
+				{!stageKey.includes('_PI_') && current.team && (
+					<div className="flex border-t border-white/5 bg-black/20 p-1 justify-center gap-1">
+						{[4, 5, 6, 7].map(g => (
+							<button key={g} disabled={isLocked} onClick={() => updateGames(stageKey, g)}
+								className={`w-5 h-5 flex items-center justify-center rounded text-[8px] font-black ${current.games === g ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-300'}`}>{g}</button>
+						))}
+					</div>
+				)}
 			</div>
 		);
 	};
 
-	if (loading) return <div className="text-center py-20 animate-pulse text-orange-500 font-black tracking-widest">BUILDING BRACKET...</div>;
+	const getLoser = (tA?: Team | null, tB?: Team | null, winner?: Team | null) => (winner && tA && tB) ? (winner.id === tA.id ? tB : tA) : null;
+
+	if (loading) return <div className="text-center py-20 animate-pulse text-orange-500 font-black">REFRESHING BRACKET...</div>;
 
 	return (
-		<div className="w-full overflow-x-auto pb-10 scrollbar-hide flex flex-col items-center">
-			<div className="min-w-max flex justify-start lg:justify-center px-4 w-full">
-				<div className="flex items-stretch gap-1.5 md:gap-2 lg:gap-3">
-					{/* West PI */}
+		<div className="w-full overflow-x-auto pb-10 flex flex-col items-center">
+			<div className="min-w-max flex gap-3 px-4">
+				<div className="flex gap-3">
 					<div className="flex flex-col justify-center gap-4">
-						<MatchupBox teamA={westSeeds[6]} seedA="7" teamB={westSeeds[7]} seedB="8" label="PI (7v8)" winner={picks['W_PI_78']} onPickA={() => makePick('W_PI_78', westSeeds[6])} onPickB={() => makePick('W_PI_78', westSeeds[7])} />
-						<MatchupBox teamA={getLoser(westSeeds[6], westSeeds[7], picks['W_PI_78'])} seedA="L7" teamB={picks['W_PI_910']} seedB="W9" label="PI (8th)" winner={picks['W_PI_8TH']} onPickA={() => makePick('W_PI_8TH', getLoser(westSeeds[6], westSeeds[7], picks['W_PI_78']))} onPickB={() => makePick('W_PI_8TH', picks['W_PI_910'])} />
-						<MatchupBox teamA={westSeeds[8]} seedA="9" teamB={westSeeds[9]} seedB="10" label="PI (9v10)" winner={picks['W_PI_910']} onPickA={() => makePick('W_PI_910', westSeeds[8])} onPickB={() => makePick('W_PI_910', westSeeds[9])} />
+						<MatchupBox stageKey="W_PI_78" teamA={westSeeds[6]} seedA="7" teamB={westSeeds[7]} seedB="8" label="PI (7v8)" />
+						<MatchupBox stageKey="W_PI_8TH" teamA={getLoser(westSeeds[6], westSeeds[7], picks['W_PI_78']?.team)} seedA="L7" teamB={picks['W_PI_910']?.team} seedB="W9" label="PI (8th)" />
+						<MatchupBox stageKey="W_PI_910" teamA={westSeeds[8]} seedA="9" teamB={westSeeds[9]} seedB="10" label="PI (9v10)" />
 					</div>
-					{/* West R1 */}
 					<div className="flex flex-col justify-around py-4">
-						<MatchupBox teamA={westSeeds[0]} seedA="1" teamB={picks['W_PI_8TH']} seedB="8" label="Round 1" winner={picks['W_R1_1']} onPickA={() => makePick('W_R1_1', westSeeds[0])} onPickB={() => makePick('W_R1_1', picks['W_PI_8TH'])} />
-						<MatchupBox teamA={westSeeds[3]} seedA="4" teamB={westSeeds[4]} seedB="5" label="Round 1" winner={picks['W_R1_2']} onPickA={() => makePick('W_R1_2', westSeeds[3])} onPickB={() => makePick('W_R1_2', westSeeds[4])} />
-						<MatchupBox teamA={westSeeds[2]} seedA="3" teamB={westSeeds[5]} seedB="6" label="Round 1" winner={picks['W_R1_3']} onPickA={() => makePick('W_R1_3', westSeeds[2])} onPickB={() => makePick('W_R1_3', westSeeds[5])} />
-						<MatchupBox teamA={westSeeds[1]} seedA="2" teamB={picks['W_PI_78']} seedB="7" label="Round 1" winner={picks['W_R1_4']} onPickA={() => makePick('W_R1_4', westSeeds[1])} onPickB={() => makePick('W_R1_4', picks['W_PI_78'])} />
+						<MatchupBox stageKey="W_R1_1" teamA={westSeeds[0]} seedA="1" teamB={picks['W_PI_8TH']?.team} seedB="8" label="Round 1" />
+						<MatchupBox stageKey="W_R1_2" teamA={westSeeds[3]} seedA="4" teamB={westSeeds[4]} seedB="5" label="Round 1" />
+						<MatchupBox stageKey="W_R1_3" teamA={westSeeds[2]} seedA="3" teamB={westSeeds[5]} seedB="6" label="Round 1" />
+						<MatchupBox stageKey="W_R1_4" teamA={westSeeds[1]} seedA="2" teamB={picks['W_PI_78']?.team} seedB="7" label="Round 1" />
 					</div>
-					{/* West Semis */}
 					<div className="flex flex-col justify-around py-16">
-						<MatchupBox teamA={picks['W_R1_1']} seedA="" teamB={picks['W_R1_2']} seedB="" label="Semis" winner={picks['W_R2_1']} onPickA={() => makePick('W_R2_1', picks['W_R1_1'])} onPickB={() => makePick('W_R2_1', picks['W_R1_2'])} />
-						<MatchupBox teamA={picks['W_R1_3']} seedA="" teamB={picks['W_R1_4']} seedB="" label="Semis" winner={picks['W_R2_2']} onPickA={() => makePick('W_R2_2', picks['W_R1_3'])} onPickB={() => makePick('W_R2_2', picks['W_R1_4'])} />
+						<MatchupBox stageKey="W_R2_1" teamA={picks['W_R1_1']?.team} teamB={picks['W_R1_2']?.team} label="Semis" />
+						<MatchupBox stageKey="W_R2_2" teamA={picks['W_R1_3']?.team} teamB={picks['W_R1_4']?.team} label="Semis" />
 					</div>
-					{/* West Finals */}
 					<div className="flex flex-col justify-center">
-						<MatchupBox teamA={picks['W_R2_1']} seedA="" teamB={picks['W_R2_2']} seedB="" label="West Finals" winner={picks['W_CF']} onPickA={() => makePick('W_CF', picks['W_R2_1'])} onPickB={() => makePick('W_CF', picks['W_R2_2'])} />
+						<MatchupBox stageKey="W_CF" teamA={picks['W_R2_1']?.team} teamB={picks['W_R2_2']?.team} label="West Finals" />
 					</div>
-					{/* NBA Finals */}
-					<div className="flex flex-col justify-center items-center px-1 md:px-2 relative">
-						<img src="https://cdn.nba.com/logos/leagues/logo-nba.svg" alt="NBA" className="h-10 lg:h-14 w-auto opacity-20 absolute top-10 drop-shadow-lg" />
-						<MatchupBox teamA={picks['W_CF']} seedA="W" teamB={picks['E_CF']} seedB="E" label="NBA Finals" isFinals={true} winner={picks['FINALS']} onPickA={() => makePick('FINALS', picks['W_CF'])} onPickB={() => makePick('FINALS', picks['E_CF'])} />
-					</div>
-					{/* East Finals */}
+				</div>
+				<div className="flex flex-col justify-center px-4">
+					<MatchupBox stageKey="FINALS" teamA={picks['W_CF']?.team} seedA="W" teamB={picks['E_CF']?.team} seedB="E" label="NBA Finals" isFinals={true} />
+				</div>
+				<div className="flex gap-3">
 					<div className="flex flex-col justify-center">
-						<MatchupBox teamA={picks['E_R2_1']} seedA="" teamB={picks['E_R2_2']} seedB="" label="East Finals" winner={picks['E_CF']} onPickA={() => makePick('E_CF', picks['E_R2_1'])} onPickB={() => makePick('E_CF', picks['E_R2_2'])} />
+						<MatchupBox stageKey="E_CF" teamA={picks['E_R2_1']?.team} teamB={picks['E_R2_2']?.team} label="East Finals" />
 					</div>
-					{/* East Semis */}
 					<div className="flex flex-col justify-around py-16">
-						<MatchupBox teamA={picks['E_R1_1']} seedA="" teamB={picks['E_R1_2']} seedB="" label="Semis" winner={picks['E_R2_1']} onPickA={() => makePick('E_R2_1', picks['E_R1_1'])} onPickB={() => makePick('E_R2_1', picks['E_R1_2'])} />
-						<MatchupBox teamA={picks['E_R1_3']} seedA="" teamB={picks['E_R1_4']} seedB="" label="Semis" winner={picks['E_R2_2']} onPickA={() => makePick('E_R2_2', picks['E_R1_3'])} onPickB={() => makePick('E_R2_2', picks['E_R1_4'])} />
+						<MatchupBox stageKey="E_R2_1" teamA={picks['E_R1_1']?.team} teamB={picks['E_R1_2']?.team} label="Semis" />
+						<MatchupBox stageKey="E_R2_2" teamA={picks['E_R1_3']?.team} teamB={picks['E_R1_4']?.team} label="Semis" />
 					</div>
-					{/* East R1 */}
 					<div className="flex flex-col justify-around py-4">
-						<MatchupBox teamA={eastSeeds[0]} seedA="1" teamB={picks['E_PI_8TH']} seedB="8" label="Round 1" winner={picks['E_R1_1']} onPickA={() => makePick('E_R1_1', eastSeeds[0])} onPickB={() => makePick('E_R1_1', picks['E_PI_8TH'])} />
-						<MatchupBox teamA={eastSeeds[3]} seedA="4" teamB={eastSeeds[4]} seedB="5" label="Round 1" winner={picks['E_R1_2']} onPickA={() => makePick('E_R1_2', eastSeeds[3])} onPickB={() => makePick('E_R1_2', eastSeeds[4])} />
-						<MatchupBox teamA={eastSeeds[2]} seedA="3" teamB={eastSeeds[5]} seedB="6" label="Round 1" winner={picks['E_R1_3']} onPickA={() => makePick('E_R1_3', eastSeeds[2])} onPickB={() => makePick('E_R1_3', eastSeeds[5])} />
-						<MatchupBox teamA={eastSeeds[1]} seedA="2" teamB={picks['E_PI_78']} seedB="7" label="Round 1" winner={picks['E_R1_4']} onPickA={() => makePick('E_R1_4', eastSeeds[1])} onPickB={() => makePick('E_R1_4', picks['E_PI_78'])} />
+						<MatchupBox stageKey="E_R1_1" teamA={eastSeeds[0]} seedA="1" teamB={picks['E_PI_8TH']?.team} seedB="8" label="Round 1" />
+						<MatchupBox stageKey="E_R1_2" teamA={eastSeeds[3]} seedA="4" teamB={eastSeeds[4]} seedB="5" label="Round 1" />
+						<MatchupBox stageKey="E_R1_3" teamA={eastSeeds[2]} seedA="3" teamB={eastSeeds[5]} seedB="6" label="Round 1" />
+						<MatchupBox stageKey="E_R1_4" teamA={eastSeeds[1]} seedA="2" teamB={picks['E_PI_78']?.team} seedB="7" label="Round 1" />
 					</div>
-					{/* East PI */}
 					<div className="flex flex-col justify-center gap-4">
-						<MatchupBox teamA={eastSeeds[6]} seedA="7" teamB={eastSeeds[7]} seedB="8" label="PI (7v8)" winner={picks['E_PI_78']} onPickA={() => makePick('E_PI_78', eastSeeds[6])} onPickB={() => makePick('E_PI_78', eastSeeds[7])} />
-						<MatchupBox teamA={getLoser(eastSeeds[6], eastSeeds[7], picks['E_PI_78'])} seedA="L7" teamB={picks['E_PI_910']} seedB="W9" label="PI (8th)" winner={picks['E_PI_8TH']} onPickA={() => makePick('E_PI_8TH', getLoser(eastSeeds[6], eastSeeds[7], picks['E_PI_78']))} onPickB={() => makePick('E_PI_8TH', picks['E_PI_910'])} />
-						<MatchupBox teamA={eastSeeds[8]} seedA="9" teamB={eastSeeds[9]} seedB="10" label="PI (9v10)" winner={picks['E_PI_910']} onPickA={() => makePick('E_PI_910', eastSeeds[8])} onPickB={() => makePick('E_PI_910', eastSeeds[9])} />
+						<MatchupBox stageKey="E_PI_78" teamA={eastSeeds[6]} seedA="7" teamB={eastSeeds[7]} seedB="8" label="PI (7v8)" />
+						<MatchupBox stageKey="E_PI_8TH" teamA={getLoser(eastSeeds[6], eastSeeds[7], picks['E_PI_78']?.team)} seedA="L7" teamB={picks['E_PI_910']?.team} seedB="W9" label="PI (8th)" />
+						<MatchupBox stageKey="E_PI_910" teamA={eastSeeds[8]} seedA="9" teamB={eastSeeds[9]} seedB="10" label="PI (9v10)" />
 					</div>
 				</div>
 			</div>
-			{!isLocked ? (
-				<div className="mt-10 flex flex-col items-center gap-3">
-					<button
-						onClick={saveBracket}
-						disabled={isSaving}
-						className={`px-12 py-4 rounded-xl font-black uppercase tracking-widest transition-all shadow-xl text-lg min-w-[300px]
-							${isSaving ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 
-							saveSuccess ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)]' : 
-							'bg-orange-600 hover:bg-orange-500 text-white shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:scale-105'}
-						`}
-					>
-						{isSaving ? 'Saving Bracket...' : saveSuccess ? '✔ Bracket Saved!' : 'Save Bracket Picks'}
-					</button>
-				</div>
-			) : (
-				<div className="mt-10 text-center text-sm text-red-400 bg-red-900/20 px-6 py-3 rounded-full border border-red-500/20 uppercase tracking-widest font-black">
-					🔒 Bracket is locked. Good luck!
-				</div>
+			{!isLocked && (
+				<button onClick={saveBracket} disabled={isSaving} className={`mt-8 px-12 py-3 rounded-xl font-black uppercase transition-all ${saveSuccess ? 'bg-green-600' : 'bg-orange-600 hover:scale-105'} text-white shadow-xl`}>
+					{isSaving ? 'Saving...' : saveSuccess ? '✔ Saved' : 'Save Picks'}
+				</button>
 			)}
 		</div>
 	);
