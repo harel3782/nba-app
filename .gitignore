@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Frontend Build outputs & Caches
+dist/
+build/
+*.tsbuildinfo
+.eslintcache
+
+# Environment variables (MUST BE IGNORED)
+.env
+.env.local
+.env.*.local
+
+# Python Caches & Environments
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Android / Capacitor Auto-generated & Local config
+android/.gradle/
+android/.idea/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+
+# IDE files & OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

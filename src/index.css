@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Mobile Native Feel Fixes --- */
+:root {
+	/* Defines the safe areas (under the clock and bottom bar) */
+	--sat: env(safe-area-inset-top);
+	--sab: env(safe-area-inset-bottom);
+	--sal: env(safe-area-inset-left);
+	--sar: env(safe-area-inset-right);
+}
+
+body {
+	/* Prevents "bounce" scrolling (Rubber band effect) on iPhone */
+	overscroll-behavior-y: none;
+
+	/* Prevents accidental text selection (except inside input) */
+	-webkit-user-select: none;
+	user-select: none;
+
+	/* Cancels the blue flash on button clicks in Android */
+	-webkit-tap-highlight-color: transparent;
+
+	/* Dark background by default to prevent white flash on load */
+	background-color: #0f172a;
+}
+
+/* Allows text selection only in text boxes */
+input,
+textarea {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+/* Hides the ugly scrollbars but keeps the scrolling itself */
+::-webkit-scrollbar {
+	display: none;
+}
+* {
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+}
+
+/* Adjustment of the Header to the safe area */
+header {
+	padding-top: max(0.75rem, var(--sat)); /* Takes the maximum between the regular margin and the notch */
+	padding-left: max(1rem, var(--sal));
+	padding-right: max(1rem, var(--sar));
+}
+
+/* Adjustment of the bottom of the screen so it doesn't get cut off */
+main {
+	padding-bottom: max(2rem, var(--sab));
+}

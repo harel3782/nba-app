@@ -1,0 +1,223 @@
+export interface Team {
+	id: string;
+	name: string;
+	conference: 'West' | 'East';
+	logo: string;
+	color: string;
+}
+
+export const NBA_TEAMS: Team[] = [
+	// --- East ---
+	{
+		id: 'BOS',
+		name: 'Boston Celtics',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/bos.png',
+		color: '#007A33',
+	},
+	{
+		id: 'BKN',
+		name: 'Brooklyn Nets',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/bkn.png',
+		color: '#000000',
+	},
+	{
+		id: 'NYK',
+		name: 'New York Knicks',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/nyk.png',
+		color: '#F58426',
+	},
+	{
+		id: 'PHI',
+		name: 'Philadelphia 76ers',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/phi.png',
+		color: '#006BB6',
+	},
+	{
+		id: 'TOR',
+		name: 'Toronto Raptors',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/tor.png',
+		color: '#CE1141',
+	},
+	{
+		id: 'CHI',
+		name: 'Chicago Bulls',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/chi.png',
+		color: '#CE1141',
+	},
+	{
+		id: 'CLE',
+		name: 'Cleveland Cavaliers',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/cle.png',
+		color: '#860038',
+	},
+	{
+		id: 'DET',
+		name: 'Detroit Pistons',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/det.png',
+		color: '#C8102E',
+	},
+	{
+		id: 'IND',
+		name: 'Indiana Pacers',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/ind.png',
+		color: '#FDBB30',
+	},
+	{
+		id: 'MIL',
+		name: 'Milwaukee Bucks',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/mil.png',
+		color: '#00471B',
+	},
+	{
+		id: 'ATL',
+		name: 'Atlanta Hawks',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/atl.png',
+		color: '#E03A3E',
+	},
+	{
+		id: 'CHA',
+		name: 'Charlotte Hornets',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/cha.png',
+		color: '#1D1160',
+	},
+	{
+		id: 'MIA',
+		name: 'Miami Heat',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/mia.png',
+		color: '#98002E',
+	},
+	{
+		id: 'ORL',
+		name: 'Orlando Magic',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/orl.png',
+		color: '#0077C0',
+	},
+	{
+		id: 'WAS',
+		name: 'Washington Wizards',
+		conference: 'East',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/was.png',
+		color: '#002B5C',
+	},
+
+	// --- West ---
+	{
+		id: 'DEN',
+		name: 'Denver Nuggets',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/den.png',
+		color: '#0E2240',
+	},
+	{
+		id: 'MIN',
+		name: 'Minnesota Timberwolves',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/min.png',
+		color: '#0C2340',
+	},
+	{
+		id: 'OKC',
+		name: 'Oklahoma City Thunder',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/okc.png',
+		color: '#007AC1',
+	},
+	{
+		id: 'POR',
+		name: 'Portland Trail Blazers',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/por.png',
+		color: '#E03A3E',
+	},
+	{
+		id: 'UTA',
+		name: 'Utah Jazz',
+		conference: 'West',
+		logo: 'https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg',
+		color: '#FFF21F',
+	},
+	{
+		id: 'GSW',
+		name: 'Golden State Warriors',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/gs.png',
+		color: '#1D428A',
+	},
+	{
+		id: 'LAC',
+		name: 'LA Clippers',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/lac.png',
+		color: '#C8102E',
+	},
+	{
+		id: 'LAL',
+		name: 'Los Angeles Lakers',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/lal.png',
+		color: '#552583',
+	},
+	{
+		id: 'PHX',
+		name: 'Phoenix Suns',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/phx.png',
+		color: '#1D1160',
+	},
+	{
+		id: 'SAC',
+		name: 'Sacramento Kings',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/sac.png',
+		color: '#5A2D81',
+	},
+	{
+		id: 'DAL',
+		name: 'Dallas Mavericks',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/dal.png',
+		color: '#00538C',
+	},
+	{
+		id: 'HOU',
+		name: 'Houston Rockets',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/hou.png',
+		color: '#CE1141',
+	},
+	{
+		id: 'MEM',
+		name: 'Memphis Grizzlies',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/mem.png',
+		color: '#5D76A9',
+	},
+	{
+		id: 'NOP',
+		name: 'New Orleans Pelicans',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/no.png',
+		color: '#0C2340',
+	},
+	{
+		id: 'SAS',
+		name: 'San Antonio Spurs',
+		conference: 'West',
+		logo: 'https://a.espncdn.com/i/teamlogos/nba/500/sas.png',
+		color: '#C4CED4',
+	},
+];
