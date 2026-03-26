@@ -1,7 +1,6 @@
 import requests
 import os
 from datetime import datetime, date, timezone
-import time
 import sys
 from supabase import create_client, Client
 
@@ -16,9 +15,19 @@ def load_local_env():
 	except FileNotFoundError:
 		pass
 
+# Load environment variables for local testing
 load_local_env()
-URL = os.environ.get("VITE_SUPABASE_URL")
-KEY = os.environ.get("VITE_SUPABASE_ANON_KEY")
+
+# Fetch Supabase credentials with fallbacks
+URL = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL")
+KEY = os.environ.get("SUPABASE_KEY") or os.environ.get("VITE_SUPABASE_ANON_KEY")
+
+# Prevent crash with a clear error message if credentials are not found
+if not URL or not KEY:
+	print("❌ CRITICAL ERROR: Supabase credentials are missing!")
+	print("Check your GitHub Actions Secrets or .env.local file.")
+	sys.exit(1)
+
 supabase: Client = create_client(URL, KEY)
 
 ESPN_API_URL = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings'
@@ -60,7 +69,7 @@ def update_standings():
 	db_map = {item['team_id']: item for item in existing_data.data}
 
 	db_rows = []
-	current_time = datetime.now()
+	current_time = datetime.now(timezone.utc)
 	
 	for conference in data.get('children', []):
 		conf_name = 'East' if 'East' in conference.get('name', '') else 'West'
@@ -76,7 +85,9 @@ def update_standings():
 			if old_row:
 				last_update_str = old_row['last_updated'].replace('Z', '+00:00')
 				last_update = datetime.fromisoformat(last_update_str)
-				if (datetime.now(last_update.tzinfo) - last_update).total_seconds() > 43200:
+				
+				# Update previous_rank only if more than 12 hours (43200 seconds) have passed
+				if (current_time - last_update).total_seconds() > 43200:
 					prev_rank = old_row['actual_rank']
 				else:
 					prev_rank = old_row.get('previous_rank', rank)
@@ -94,12 +105,16 @@ def update_standings():
 			})
 
 	print("Upserting data to official_regular_standings...")
-	supabase.table('official_regular_standings').upsert(db_rows, on_conflict='team_id').execute()
+	# Using upsert without explicit on_conflict if the primary key handles it natively, 
+	# otherwise you can add it back if Supabase complains.
+	supabase.table('official_regular_standings').upsert(db_rows).execute()
 	
+	print("Refreshing leaderboards...")
 	supabase.rpc('refresh_all_leaderboards').execute()
 	print("✅ Standings updated successfully!")
 
 if __name__ == "__main__":
+	# In GitHub Actions, check the schedule window. Locally, run immediately.
 	if os.environ.get("GITHUB_ACTIONS") == "true":
 		if should_run():
 			update_standings()
