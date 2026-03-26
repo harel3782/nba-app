@@ -115,8 +115,6 @@ def update_standings():
 	print("Upserting data to official_regular_standings...")
 	supabase.table('official_regular_standings').upsert(db_rows).execute()
 	
-	print("Refreshing leaderboards...")
-	supabase.rpc('refresh_all_leaderboards').execute()
 	print("Standings updated successfully!")
 
 if __name__ == "__main__":
