@@ -26,6 +26,7 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 	async function handleSave() {
 		setSaving(true);
 		
+		// Ensure you are using the new column names found in your DB
 		const { error } = await supabase
 			.from('leagues')
 			.update({
@@ -38,7 +39,7 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 
 		setSaving(false);
 		if (error) {
-			console.error(error);
+			console.error(error); // This is where you saw the 'predictions' error
 			alert('Error updating league');
 		} else {
 			onUpdate();
@@ -47,17 +48,18 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 	}
 
 	async function handleDelete() {
-		const confirmed = window.confirm('🚨 WARNING: Are you sure you want to delete this league? This will permanently delete the league and ALL user predictions associated with it. This action CANNOT be undone.');
+		const confirmed = window.confirm('🚨 WARNING: Are you sure you want to delete this league? This will permanently delete the league and ALL user predictions associated with it.');
 		if (!confirmed) return;
 
 		setDeleting(true);
 		
 		try {
-			// Cascade delete all user predictions before removing the league
+			// ✅ FIX: Using new table names instead of 'predictions'
 			const { error: err1 } = await supabase.from('user_regular_picks').delete().eq('league_id', leagueId);
-			// Note: If you also want to delete bracket picks on league deletion, add:
-			// await supabase.from('user_bracket_picks').delete().eq('league_id', leagueId);
 			if (err1) throw err1;
+
+			const { error: errBracket } = await supabase.from('user_bracket_picks').delete().eq('league_id', leagueId);
+			if (errBracket) throw errBracket;
 
 			const { error: err2 } = await supabase.from('league_members').delete().eq('league_id', leagueId);
 			if (err2) throw err2;
@@ -66,7 +68,7 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 			if (err3) throw err3;
 
 			if (!deletedData || deletedData.length === 0) {
-				throw new Error("Supabase RLS is blocking the deletion. You need to enable DELETE policies in your Supabase SQL Editor.");
+				throw new Error("Supabase RLS is blocking the deletion.");
 			}
 
 			if (onDelete) onDelete();
@@ -81,7 +83,7 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 	return (
 		<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
 			<div className="bg-[#0f172a] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-				<h2 className="text-2xl font-black uppercase italic mb-6 text-white">League Settings</h2>
+				<h2 className="text-2xl font-black uppercase italic mb-6 text-white text-center">League Settings</h2>
 				
 				<div className="space-y-4 mb-8">
 					<div>
@@ -126,11 +128,7 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 					</button>
 
 					<div className="flex gap-3">
-						<button 
-							onClick={onClose}
-							disabled={deleting || saving}
-							className="px-5 py-2.5 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
-						>
+						<button onClick={onClose} disabled={deleting || saving} className="px-5 py-2.5 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
 							Cancel
 						</button>
 						<button 
