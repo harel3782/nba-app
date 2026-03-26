@@ -5,6 +5,7 @@ import sys
 from supabase import create_client, Client
 
 def load_local_env():
+	# Load environment variables from .env.local for local testing
 	try:
 		with open('.env.local', 'r') as f:
 			for line in f:
@@ -15,16 +16,15 @@ def load_local_env():
 	except FileNotFoundError:
 		pass
 
-# Load environment variables for local testing
 load_local_env()
 
-# Fetch Supabase credentials with fallbacks
+# Fetch Supabase credentials with fallbacks for standard and Vite prefixes
 URL = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL")
 KEY = os.environ.get("SUPABASE_KEY") or os.environ.get("VITE_SUPABASE_ANON_KEY")
 
-# Prevent crash with a clear error message if credentials are not found
+# Prevent obscure crashes by validating credentials early
 if not URL or not KEY:
-	print("❌ CRITICAL ERROR: Supabase credentials are missing!")
+	print("CRITICAL ERROR: Supabase credentials are missing!")
 	print("Check your GitHub Actions Secrets or .env.local file.")
 	sys.exit(1)
 
@@ -39,6 +39,7 @@ TEAM_MAPPING = {
 }
 
 def should_run():
+	# Define the end date for the script execution
 	end_date_str = os.environ.get("END_DATE", "2026-04-15")
 	try:
 		end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
@@ -49,6 +50,7 @@ def should_run():
 		print(f"Project period ended on {end_date_str}. Skipping.")
 		return False
 
+	# Define active hours in UTC to save GitHub Actions minutes
 	current_hour = datetime.now(timezone.utc).hour
 	start_h = int(os.environ.get("START_HOUR_UTC", 0))
 	end_h = int(os.environ.get("END_HOUR_UTC", 23))
@@ -69,6 +71,7 @@ def update_standings():
 	db_map = {item['team_id']: item for item in existing_data.data}
 
 	db_rows = []
+	# Use timezone-aware datetime to prevent subtraction errors
 	current_time = datetime.now(timezone.utc)
 	
 	for conference in data.get('children', []):
@@ -83,6 +86,7 @@ def update_standings():
 			
 			old_row = db_map.get(team_code_nba)
 			if old_row:
+				# Ensure timezone awareness for the database timestamp
 				last_update_str = old_row['last_updated'].replace('Z', '+00:00')
 				last_update = datetime.fromisoformat(last_update_str)
 				
@@ -105,16 +109,14 @@ def update_standings():
 			})
 
 	print("Upserting data to official_regular_standings...")
-	# Using upsert without explicit on_conflict if the primary key handles it natively, 
-	# otherwise you can add it back if Supabase complains.
 	supabase.table('official_regular_standings').upsert(db_rows).execute()
 	
 	print("Refreshing leaderboards...")
 	supabase.rpc('refresh_all_leaderboards').execute()
-	print("✅ Standings updated successfully!")
+	print("Standings updated successfully!")
 
 if __name__ == "__main__":
-	# In GitHub Actions, check the schedule window. Locally, run immediately.
+	# Respect schedule window in GitHub Actions, but run immediately if local
 	if os.environ.get("GITHUB_ACTIONS") == "true":
 		if should_run():
 			update_standings()

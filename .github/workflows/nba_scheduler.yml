@@ -24,11 +24,10 @@ jobs:
 
       - name: Run Update Script
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          # הגדר פה את תאריך הסיום (למשל סוף העונה הרגילה)
-          END_DATE: "2026-04-15" 
-          # הגדר את טווח השעות (לפי שעון UTC - שים לב להפרשי השעות מישראל)
-          START_HOUR_UTC: 0  # 2:00 בלילה שעון ישראל
-          END_HOUR_UTC: 10   # 12:00 בצהריים שעון ישראל
+            # Map the existing GitHub secrets to the expected VITE variables
+            VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_KEY }}
+            END_DATE: "2026-04-15" 
+            START_HOUR_UTC: 0
+            END_HOUR_UTC: 10
         run: python scripts/main.py
