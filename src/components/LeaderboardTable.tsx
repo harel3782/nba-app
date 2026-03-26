@@ -21,6 +21,8 @@ interface Standing {
 	team_id: string;
 	actual_rank: number;
 	previous_rank: number;
+	wins: number;
+	losses: number;
 }
 
 export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, currentUserName }: Props) {
@@ -44,9 +46,14 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 			.eq('league_id', leagueId)
 			.order('total_score', { ascending: false });
 
-		// Fetch official rankings and user picks using updated table names
-		const { data: actualData } = await supabase.from('official_regular_standings').select('team_id, actual_rank, previous_rank');
-		const { data: predsData } = await supabase.from('user_regular_picks').select('user_id, team_id, predicted_rank').eq('league_id', leagueId);
+		const { data: actualData } = await supabase
+			.from('official_regular_standings')
+			.select('team_id, actual_rank, previous_rank, wins, losses');
+		
+		const { data: predsData } = await supabase
+			.from('user_regular_picks')
+			.select('user_id, team_id, predicted_rank')
+			.eq('league_id', leagueId);
 
 		const sMap: Record<string, Standing> = {};
 		actualData?.forEach(s => sMap[s.team_id] = s);
@@ -101,92 +108,109 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 		);
 	};
 
-	const renderConferenceTable = (title: string, teams: Team[], conf: 'West' | 'East') => (
-		<div className="flex-1 min-w-0 bg-black/20 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-			<div className="bg-[#1D428A]/80 p-4 border-b border-white/10">
-				<h3 className="text-lg font-black uppercase italic tracking-widest text-white">{title} Conference</h3>
-			</div>
-			<div className="overflow-x-auto scrollbar-hide">
-				<table className="w-full text-left border-collapse min-w-max">
-					<thead>
-						<tr className="bg-[#0f172a] text-[10px] uppercase tracking-wider text-gray-400">
-							<th className="sticky left-0 bg-[#0f172a] z-20 p-3 border-b border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">Team</th>
-							<th className="p-3 border-b border-white/5 text-center bg-white/5">Actual</th>
-							{leaderboard.map((user) => (
-								<th key={user.user_id} className={`p-3 border-b border-white/5 text-center min-w-[5rem] ${user.user_id === currentUserId ? 'bg-orange-900/20 text-orange-300' : ''}`}>
-									<div className="flex flex-col items-center">
-										<span className="text-white text-[11px] truncate max-w-[4.5rem]">
-											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
-										</span>
-										<span className="text-green-400 text-[10px] font-black">{conf === 'West' ? (user.west_score || 0) : (user.east_score || 0)} PTS</span>
-									</div>
-								</th>
-							))}
-						</tr>
-					</thead>
-					<tbody className="text-sm">
-						{teams.map((team, idx) => {
-							const actualRank = standings[team.id]?.actual_rank;
-							return (
-								<tr key={team.id} className="border-b border-white/5 hover:bg-white/5">
-									<td className="sticky left-0 bg-[#162032] z-10 p-2 lg:p-3 flex items-center gap-2 lg:gap-3">
-										<span className="text-gray-500 font-black w-3 text-[10px]">{idx + 1}.</span>
-										<div className="flex items-center justify-center">
-											{renderTrend(team.id)}
-										</div>
-										<img src={team.logo} className="w-5 h-5 lg:w-6 lg:h-6 object-contain" />
-										<span className="font-bold text-gray-200 text-xs">{team.id}</span>
-									</td>
-									<td className="p-3 text-center bg-white/5 font-black text-white">{actualRank || '-'}</td>
-									{leaderboard.map((user) => (
-										<td key={user.user_id} className={`p-1 text-center ${user.user_id === currentUserId ? 'bg-orange-900/10' : ''}`}>
-											{renderPredictionBadge(predictionsMap[team.id]?.[user.user_id], actualRank)}
-										</td>
-									))}
-								</tr>
-							);
-						})}
-					</tbody>
-				</table>
-			</div>
-		</div>
-	);
+	const renderConferenceTable = (title: string, teams: Team[], conf: 'West' | 'East') => {
+		const leaderTeam = teams[0];
+		const leaderStats = leaderTeam ? standings[leaderTeam.id] : null;
 
-	if (loading) return <div className="text-center py-20 text-orange-400 animate-pulse font-black tracking-widest">LOADING LEADERBOARD...</div>;
+		return (
+			<div className="flex-1 min-w-0 bg-black/20 border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
+				<div className="bg-[#1D428A]/80 p-4 border-b border-white/10">
+					<h3 className="text-lg font-black uppercase italic tracking-widest text-white">{title} Conference</h3>
+				</div>
+				<div className="overflow-x-auto scrollbar-hide">
+					<table className="w-full text-left border-collapse min-w-max">
+						<thead>
+							<tr className="bg-[#0f172a] text-[10px] uppercase tracking-wider text-gray-400">
+								<th className="sticky left-0 bg-[#0f172a] z-20 p-4 border-b border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Team</th>
+								<th className="p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-12">W</th>
+								<th className="p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-12">L</th>
+								<th className="p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-14 text-orange-400">GB</th>
+								{leaderboard.map((user) => (
+									<th key={user.user_id} className={`p-3 border-b border-white/5 text-center min-w-[5.5rem] border-l border-white/5 ${user.user_id === currentUserId ? 'bg-orange-900/20 text-orange-300' : ''}`}>
+										<div className="flex flex-col items-center">
+											<span className="text-white text-[11px] truncate max-w-[4.8rem]">
+												{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
+											</span>
+											<span className="text-green-400 text-[10px] font-black">{conf === 'West' ? (user.west_score || 0) : (user.east_score || 0)} PTS</span>
+										</div>
+									</th>
+								))}
+							</tr>
+						</thead>
+						<tbody className="text-sm">
+							{teams.map((team, idx) => {
+								const s = standings[team.id];
+								const actualRank = s?.actual_rank;
+								
+								let gbDisplay = "-";
+								if (leaderStats && s && idx > 0) {
+									const gbValue = ((leaderStats.wins - s.wins) + (s.losses - leaderStats.losses)) / 2;
+									gbDisplay = gbValue.toString();
+								}
+
+								return (
+									<tr key={team.id} className="border-b border-white/5 hover:bg-white/5 group">
+										<td className="sticky left-0 bg-[#162032] z-10 p-3 lg:p-4 flex items-center gap-3">
+											<span className="text-gray-500 font-black w-4 text-[11px]">{idx + 1}.</span>
+											<div className="flex items-center justify-center">
+												{renderTrend(team.id)}
+											</div>
+											<img src={team.logo} className="w-6 h-6 object-contain" />
+											<span className="font-bold text-gray-200 text-xs tracking-wide">{team.id}</span>
+										</td>
+										<td className="p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.wins ?? '-'}</td>
+										<td className="p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.losses ?? '-'}</td>
+										<td className="p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{gbDisplay}</td>
+										{leaderboard.map((user) => (
+											<td key={user.user_id} className={`p-2 text-center border-l border-white/5 ${user.user_id === currentUserId ? 'bg-orange-900/10' : ''}`}>
+												{renderPredictionBadge(predictionsMap[team.id]?.[user.user_id], actualRank)}
+											</td>
+										))}
+									</tr>
+								);
+							})}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		);
+	};
+
+	if (loading) return <div className="text-center py-24 text-orange-400 animate-pulse font-black tracking-widest italic">LOADING LEADERBOARD...</div>;
 
 	const westTeams = [...NBA_TEAMS.filter(t => t.conference === 'West')].sort((a, b) => (standings[a.id]?.actual_rank ?? 99) - (standings[b.id]?.actual_rank ?? 99));
 	const eastTeams = [...NBA_TEAMS.filter(t => t.conference === 'East')].sort((a, b) => (standings[a.id]?.actual_rank ?? 99) - (standings[b.id]?.actual_rank ?? 99));
 	const leaderScore = leaderboard[0]?.total_score || 0;
 
 	return (
-		<div className="w-full flex flex-col gap-6 items-center">
-			<div className="w-full max-w-xl bg-black/40 rounded-2xl border border-white/10 p-4 shadow-xl">
-				<h4 className="text-center text-[10px] font-black uppercase tracking-[0.3em] text-orange-400 mb-4 italic">Overall Scoreboard</h4>
-				<div className="grid grid-cols-5 gap-2 text-center border-b border-white/5 pb-2 mb-2 text-[9px] font-black text-gray-500 uppercase tracking-widest">
-					<div className="text-left pl-2">Player</div>
+		<div className="w-full flex flex-col gap-8 items-center max-w-full">
+			<div className="w-full max-w-2xl bg-black/40 rounded-3xl border border-white/10 p-5 shadow-2xl backdrop-blur-xl">
+				<h4 className="text-center text-[11px] font-black uppercase tracking-[0.4em] text-orange-400 mb-5 italic">Overall Scoreboard</h4>
+				<div className="grid grid-cols-5 gap-2 text-center border-b border-white/10 pb-3 mb-3 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+					<div className="text-left pl-3">Player</div>
 					<div>West</div>
 					<div>East</div>
 					<div className="text-white">Total</div>
 					<div className="text-orange-500/80">Diff</div>
 				</div>
-				<div className="space-y-1">
+				<div className="space-y-1.5">
 					{leaderboard.length === 0 ? (
-						<div className="col-span-5 text-center py-4 text-gray-500 text-xs uppercase tracking-widest">Waiting for predictions...</div>
+						<div className="col-span-5 text-center py-6 text-gray-500 text-xs uppercase tracking-widest font-bold">Waiting for predictions...</div>
 					) : (
 						leaderboard.map((user, idx) => {
 							const diff = user.total_score - leaderScore;
 							return (
-								<div key={user.user_id} className={`grid grid-cols-5 gap-2 text-center py-2 rounded-lg transition-colors ${user.user_id === currentUserId ? 'bg-orange-500/10 border border-orange-500/20' : 'hover:bg-white/5'}`}>
-									<div className="text-left pl-2 flex items-center gap-2">
-										<span className="text-[10px] font-black text-gray-600">{idx + 1}.</span>
-										<span className="font-bold text-gray-200 text-xs truncate">
+								<div key={user.user_id} className={`grid grid-cols-5 gap-2 text-center py-2.5 rounded-xl transition-all ${user.user_id === currentUserId ? 'bg-orange-500/15 border border-orange-500/30 shadow-lg' : 'hover:bg-white/5 border border-transparent'}`}>
+									<div className="text-left pl-3 flex items-center gap-2.5">
+										<span className="text-[11px] font-black text-gray-600">{idx + 1}.</span>
+										<span className="font-bold text-gray-100 text-xs truncate">
 											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
 										</span>
 									</div>
-									<div className="text-blue-400 font-bold text-xs">{user.west_score || 0}</div>
-									<div className="text-blue-400 font-bold text-xs">{user.east_score || 0}</div>
-									<div className="text-green-400 font-black text-xs">{user.total_score || 0}</div>
-									<div className="text-orange-500/70 text-xs font-bold">{diff === 0 ? '-' : diff}</div>
+									<div className="text-blue-400/90 font-bold text-xs">{user.west_score || 0}</div>
+									<div className="text-blue-400/90 font-bold text-xs">{user.east_score || 0}</div>
+									<div className="text-green-400 font-black text-sm">{user.total_score || 0}</div>
+									<div className="text-orange-500/80 text-xs font-black">{diff === 0 ? '-' : diff}</div>
 								</div>
 							);
 						})
@@ -194,7 +218,7 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 				</div>
 			</div>
 			{leaderboard.length > 0 && (
-				<div className="w-full flex flex-col lg:flex-row gap-6 items-start">
+				<div className="w-full flex flex-col xl:flex-row gap-8 items-start">
 					{renderConferenceTable('Western', westTeams, 'West')}
 					{renderConferenceTable('Eastern', eastTeams, 'East')}
 				</div>
