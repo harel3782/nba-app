@@ -1,11 +1,10 @@
 import requests
 import os
-import datetime
+from datetime import datetime, date, timezone
 import time
 import sys
 from supabase import create_client, Client
 
-# --- Load Env ---
 def load_local_env():
 	try:
 		with open('.env.local', 'r') as f:
@@ -30,18 +29,38 @@ TEAM_MAPPING = {
 	'PHX': 'PHX', 'PHO': 'PHX', 'CHA': 'CHA', 'CHO': 'CHA'
 }
 
+def should_run():
+	end_date_str = os.environ.get("END_DATE", "2026-04-15")
+	try:
+		end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+	except ValueError:
+		end_date = date(2026, 4, 15)
+
+	if date.today() > end_date:
+		print(f"Project period ended on {end_date_str}. Skipping.")
+		return False
+
+	current_hour = datetime.now(timezone.utc).hour
+	start_h = int(os.environ.get("START_HOUR_UTC", 0))
+	end_h = int(os.environ.get("END_HOUR_UTC", 23))
+	
+	if not (start_h <= current_hour <= end_h):
+		print(f"Outside of active hours ({current_hour} UTC). Skipping.")
+		return False
+		
+	return True
+
 def update_standings():
 	print("Fetching data from ESPN...")
 	response = requests.get(ESPN_API_URL)
 	data = response.json()
 
-	# 1. Fetch current data from DB to compare
 	print("Fetching current DB state...")
 	existing_data = supabase.table("official_regular_standings").select("*").execute()
 	db_map = {item['team_id']: item for item in existing_data.data}
 
 	db_rows = []
-	current_time = datetime.datetime.now()
+	current_time = datetime.now()
 	
 	for conference in data.get('children', []):
 		conf_name = 'East' if 'East' in conference.get('name', '') else 'West'
@@ -53,16 +72,13 @@ def update_standings():
 			wins = next((int(s['value']) for s in entry['stats'] if s['name'] == 'wins'), 0)
 			losses = next((int(s['value']) for s in entry['stats'] if s['name'] == 'losses'), 0)
 			
-			# --- Smart Trend Logic ---
 			old_row = db_map.get(team_code_nba)
-			
 			if old_row:
-				last_update = datetime.datetime.fromisoformat(old_row['last_updated'].replace('Z', '+00:00'))
-				# אם עברו יותר מ-12 שעות מהעדכון האחרון, נעדכן את הטרנד
-				if (current_time.astimezone() - last_update).total_seconds() > 43200:
+				last_update_str = old_row['last_updated'].replace('Z', '+00:00')
+				last_update = datetime.fromisoformat(last_update_str)
+				if (datetime.now(last_update.tzinfo) - last_update).total_seconds() > 43200:
 					prev_rank = old_row['actual_rank']
 				else:
-					# אחרת, נשמור על ה-previous_rank הקיים ב-DB
 					prev_rank = old_row.get('previous_rank', rank)
 			else:
 				prev_rank = rank
@@ -77,14 +93,15 @@ def update_standings():
 				"last_updated": current_time.isoformat()
 			})
 
-	# 2. Upsert (מניעת דריסה של כל הטבלה)
 	print("Upserting data to official_regular_standings...")
-	# שימוש ב-upsert במקום delete+insert מונע "קפיצות" ב-UI
 	supabase.table('official_regular_standings').upsert(db_rows, on_conflict='team_id').execute()
 	
-	# 3. Trigger Leaderboard Refresh
 	supabase.rpc('refresh_all_leaderboards').execute()
 	print("✅ Standings updated successfully!")
 
 if __name__ == "__main__":
-	update_standings()
+	if os.environ.get("GITHUB_ACTIONS") == "true":
+		if should_run():
+			update_standings()
+	else:
+		update_standings()
