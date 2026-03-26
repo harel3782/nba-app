@@ -26,8 +26,6 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 
 	useEffect(() => {
 		if (triggerSave && triggerSave > 0) {
-			// Stagger the database calls to prevent PostgreSQL deadlocks.
-			// West saves immediately, East waits 500ms.
 			if (conference === 'East') {
 				setTimeout(() => {
 					savePredictions();
@@ -40,7 +38,11 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 	}, [triggerSave]);
 
 	async function loadUserPredictionsAndStandings() {
-		setInitialLoad(true);
+		// Only show loading state if we have no teams data yet
+		if (teams.length === 0) {
+			setInitialLoad(true);
+		}
+
 		const { data: predData } = await supabase
 			.from('user_regular_picks')
 			.select('team_id, predicted_rank')
@@ -88,16 +90,24 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 			predicted_rank: index + 1,
 			conference: conference,
 		}));
-		// Upsert predictions into the new table
+
 		const { error } = await supabase.from('user_regular_picks').upsert(predictionsToUpsert, { onConflict: 'user_id, league_id, team_id' });
-		if (error) { console.error('Error saving:', error); alert('Error saving predictions'); }
-		else if (onSave) onSave();
+		if (error) { 
+			console.error('Error saving:', error); 
+		} else if (onSave) {
+			onSave();
+		}
 	}
 
-	if (initialLoad) return <div className="text-white/50 text-center p-10">Loading...</div>;
+	if (initialLoad && teams.length === 0) return <div className="text-white/50 text-center p-10 font-black italic animate-pulse">LOADING TEAMS...</div>;
 
 	return (
-		<div className="w-full p-6 lg:p-8 rounded-xl border transition-all bg-black/20 border-white/10 shadow-lg">
+		<div className="w-full p-6 lg:p-8 rounded-xl border transition-all bg-black/20 border-white/10 shadow-lg relative">
+			{initialLoad && teams.length > 0 && (
+				<div className="absolute top-4 right-6">
+					<div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+				</div>
+			)}
 			<h2 className="text-2xl font-bold mb-6 text-white border-b border-white/10 pb-3 flex justify-between items-center">
 				<span className="uppercase tracking-wider">{conference}</span>
 				{isLocked ? (
@@ -119,8 +129,6 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 								if (actualRank !== undefined) {
 									const diff = predictedRank - actualRank;
 									const absDiff = Math.abs(diff);
-
-									// Color logic for proximity (Visual feedback only)
 									let colorClass = 'bg-red-500/10 text-red-400 border-red-500/20';
 									if (absDiff === 0) colorClass = 'bg-green-500/20 text-green-400 border-green-500/40 shadow-[0_0_10px_rgba(74,222,128,0.2)]';
 									else if (absDiff === 1) colorClass = 'bg-lime-500/20 text-lime-400 border-lime-500/40';
@@ -128,7 +136,6 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 									else if (absDiff === 3) colorClass = 'bg-orange-500/20 text-orange-400 border-orange-500/40';
 
 									const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '✔';
-
 									diffIndicator = (
 										<div className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border font-black text-[12px] min-w-[3.5rem] transition-all ${colorClass}`}>
 											<span>{arrow}</span>

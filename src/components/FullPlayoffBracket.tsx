@@ -29,19 +29,24 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 			loadActualStandingsForBracket();
 			loadBracketPicks();
 		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userId, leagueId]);
 
 	useEffect(() => {
 		if (triggerSave && triggerSave > 0) saveBracket();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [triggerSave]);
 
 	async function loadActualStandingsForBracket() {
-		setLoading(true);
-		// Load official standings to seed the bracket
+		// Only show global loading if seeds are empty
+		if (westSeeds.length === 0) {
+			setLoading(true);
+		}
+		
 		const { data } = await supabase.from('official_regular_standings').select('team_id, actual_rank');
 		const sMap: Record<string, number> = {};
 		data?.forEach(s => { sMap[s.team_id] = s.actual_rank; });
-
+		
 		const sortFn = (a: Team, b: Team) => (sMap[a.id] ?? 99) - (sMap[b.id] ?? 99);
 		const wTeams = NBA_TEAMS.filter(t => t.conference === 'West');
 		const eTeams = NBA_TEAMS.filter(t => t.conference === 'East');
@@ -70,24 +75,20 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 			user_id: userId, league_id: leagueId, stage_slug: slug, team_id: p.team!.id, predicted_games: p.games
 		}));
 		try {
-			// Delete old picks and insert new ones
 			await supabase.from('user_bracket_picks').delete().eq('user_id', userId).eq('league_id', leagueId);
 			if (toInsert.length > 0) await supabase.from('user_bracket_picks').insert(toInsert);
 			
 			setSaveSuccess(true);
-			
-			// ⏳ Added a 500ms delay to prevent Race Conditions with Supabase
 			if (onSaveSuccess) {
 				setTimeout(() => {
 					onSaveSuccess();
 				}, 500);
 			}
-			
 			setTimeout(() => setSaveSuccess(false), 3000);
 		} catch (e) { 
 			console.error(e); 
 		} finally { 
-			setIsSaving(false); 
+			setIsSaving(false);
 		}
 	}
 
@@ -97,7 +98,6 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 			if (prev[key]?.team?.id === team.id) return prev;
 			const next = { ...prev, [key]: { team, games: key.includes('_PI_') ? 1 : 4 } };
 
-			// Targetted Cascade Resets
 			const cascades: Record<string, string[]> = {
 				'W_PI_78': ['W_PI_8TH', 'W_R1_1', 'W_R1_4', 'W_R2_1', 'W_R2_2', 'W_CF', 'FINALS'],
 				'W_PI_910': ['W_PI_8TH', 'W_R1_1', 'W_R2_1', 'W_CF', 'FINALS'],
@@ -158,10 +158,15 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 
 	const getLoser = (tA?: Team | null, tB?: Team | null, winner?: Team | null) => (winner && tA && tB) ? (winner.id === tA.id ? tB : tA) : null;
 
-	if (loading) return <div className="text-center py-20 animate-pulse text-orange-500 font-black">REFRESHING BRACKET...</div>;
+	if (loading && westSeeds.length === 0) return <div className="text-center py-20 animate-pulse text-orange-500 font-black italic">REFRESHING BRACKET...</div>;
 
 	return (
-		<div className="w-full overflow-x-auto pb-10 flex flex-col items-center">
+		<div className="w-full overflow-x-auto pb-10 flex flex-col items-center relative">
+			{loading && westSeeds.length > 0 && (
+				<div className="absolute top-0 right-10">
+					<div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
+				</div>
+			)}
 			<div className="min-w-max flex gap-3 px-4">
 				<div className="flex gap-3">
 					<div className="flex flex-col justify-center gap-4">
