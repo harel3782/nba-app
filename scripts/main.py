@@ -90,6 +90,10 @@ def update_standings():
 				last_update_str = old_row['last_updated'].replace('Z', '+00:00')
 				last_update = datetime.fromisoformat(last_update_str)
 				
+				# Force the datetime to be timezone-aware (UTC) if it parsed as naive
+				if last_update.tzinfo is None:
+					last_update = last_update.replace(tzinfo=timezone.utc)
+				
 				# Update previous_rank only if more than 12 hours (43200 seconds) have passed
 				if (current_time - last_update).total_seconds() > 43200:
 					prev_rank = old_row['actual_rank']
