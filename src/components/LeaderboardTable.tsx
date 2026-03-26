@@ -39,7 +39,11 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 	}, [leagueId, refreshTrigger]);
 
 	async function fetchFullLeaderboardData() {
-		setLoading(true);
+		// Only show the global spinner on the very first load
+		if (leaderboard.length === 0) {
+			setLoading(true);
+		}
+
 		const { data: lbData } = await supabase
 			.from('leaderboard')
 			.select('user_id, username, total_score, west_score, east_score')
@@ -176,7 +180,7 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 		);
 	};
 
-	if (loading) return <div className="text-center py-24 text-orange-400 animate-pulse font-black tracking-widest italic">LOADING LEADERBOARD...</div>;
+	if (loading && leaderboard.length === 0) return <div className="text-center py-24 text-orange-400 animate-pulse font-black tracking-widest italic">LOADING LEADERBOARD...</div>;
 
 	const westTeams = [...NBA_TEAMS.filter(t => t.conference === 'West')].sort((a, b) => (standings[a.id]?.actual_rank ?? 99) - (standings[b.id]?.actual_rank ?? 99));
 	const eastTeams = [...NBA_TEAMS.filter(t => t.conference === 'East')].sort((a, b) => (standings[a.id]?.actual_rank ?? 99) - (standings[b.id]?.actual_rank ?? 99));
@@ -184,7 +188,13 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 
 	return (
 		<div className="w-full flex flex-col gap-8 items-center max-w-full">
-			<div className="w-full max-w-2xl bg-black/40 rounded-3xl border border-white/10 p-5 shadow-2xl backdrop-blur-xl">
+			<div className="w-full max-w-2xl bg-black/40 rounded-3xl border border-white/10 p-5 shadow-2xl backdrop-blur-xl relative">
+				{loading && (
+					<div className="absolute top-2 right-4 flex items-center gap-2">
+						<div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
+						<span className="text-[8px] font-black text-orange-500 uppercase italic">Updating...</span>
+					</div>
+				)}
 				<h4 className="text-center text-[11px] font-black uppercase tracking-[0.4em] text-orange-400 mb-5 italic">Overall Scoreboard</h4>
 				<div className="grid grid-cols-5 gap-2 text-center border-b border-white/10 pb-3 mb-3 text-[10px] font-black text-gray-500 uppercase tracking-widest">
 					<div className="text-left pl-3">Player</div>
@@ -217,12 +227,10 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 					)}
 				</div>
 			</div>
-			{leaderboard.length > 0 && (
-				<div className="w-full flex flex-col xl:flex-row gap-8 items-start">
-					{renderConferenceTable('Western', westTeams, 'West')}
-					{renderConferenceTable('Eastern', eastTeams, 'East')}
-				</div>
-			)}
+			<div className="w-full flex flex-col xl:flex-row gap-8 items-start">
+				{renderConferenceTable('Western', westTeams, 'West')}
+				{renderConferenceTable('Eastern', eastTeams, 'East')}
+			</div>
 		</div>
 	);
 }

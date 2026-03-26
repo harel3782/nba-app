@@ -16,7 +16,6 @@ interface UserScore {
 	total_combined: number;
 }
 
-// ID Mapping dictionary for accurate bracket vs database matching
 const ID_MAPPING: Record<string, string> = {
 	'W_PI_78': 'w_pi_7v8',
 	'W_PI_910': 'w_pi_9v10',
@@ -50,7 +49,10 @@ export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, c
 	}, [leagueId, refreshTrigger]);
 
 	async function fetchAndCalculate() {
-		setLoading(true);
+		// Only show global loading on first fetch
+		if (leaderboard.length === 0) {
+			setLoading(true);
+		}
 
 		const { data: regData } = await supabase
 			.from('leaderboard')
@@ -61,7 +63,6 @@ export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, c
 			.from('official_playoff_results')
 			.select('match_id, winning_team_id, actual_games');
 
-		// Fetch bracket predictions from the new table
 		const { data: predicts } = await supabase
 			.from('user_bracket_picks')
 			.select('user_id, stage_slug, team_id, predicted_games')
@@ -120,11 +121,17 @@ export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, c
 		setLoading(false);
 	}
 
-	if (loading) return <div className="text-center py-10 animate-pulse text-orange-500 font-black italic">CALCULATING SCORES...</div>;
+	if (loading && leaderboard.length === 0) return <div className="text-center py-10 animate-pulse text-orange-500 font-black italic">CALCULATING SCORES...</div>;
 
 	return (
 		<div className="w-full space-y-4 animate-fade-in">
-			<div className="bg-black/40 rounded-3xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-xl">
+			<div className="bg-black/40 rounded-3xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-xl relative">
+				{/* Silent refresh indicator */}
+				{loading && leaderboard.length > 0 && (
+					<div className="absolute top-4 right-6 flex items-center gap-2 z-10">
+						<div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-ping"></div>
+					</div>
+				)}
 				<div className="bg-gradient-to-r from-[#1D428A] to-[#C8102E] p-4 border-b border-white/10 text-center">
 					<h2 className="text-lg font-black italic text-white uppercase tracking-tighter">🏆 Global Playoff Rankings</h2>
 				</div>
@@ -140,17 +147,23 @@ export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, c
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-white/5">
-							{leaderboard.map((user, idx) => (
-								<tr key={user.user_id} className={`transition-all ${user.user_id === currentUserId ? 'bg-orange-500/10' : ''}`}>
-									<td className="p-4 font-black text-gray-500">{idx + 1}.</td>
-									<td className="p-4 font-bold text-white text-sm">
-										{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
-									</td>
-									<td className="p-4 text-center text-blue-300 font-bold text-xs">{user.regular_points}</td>
-									<td className="p-4 text-center text-green-400 font-black text-xs">+{user.bracket_points}</td>
-									<td className="p-4 text-right font-black text-xl text-orange-500 italic">{user.total_combined}</td>
+							{leaderboard.length === 0 ? (
+								<tr>
+									<td colSpan={5} className="p-10 text-center text-gray-500 text-xs uppercase tracking-widest font-bold">Waiting for predictions...</td>
 								</tr>
-							))}
+							) : (
+								leaderboard.map((user, idx) => (
+									<tr key={user.user_id} className={`transition-all ${user.user_id === currentUserId ? 'bg-orange-500/10' : 'hover:bg-white/5'}`}>
+										<td className="p-4 font-black text-gray-500">{idx + 1}.</td>
+										<td className="p-4 font-bold text-white text-sm">
+											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
+										</td>
+										<td className="p-4 text-center text-blue-300 font-bold text-xs">{user.regular_points}</td>
+										<td className="p-4 text-center text-green-400 font-black text-xs">+{user.bracket_points}</td>
+										<td className="p-4 text-right font-black text-xl text-orange-500 italic">{user.total_combined}</td>
+									</tr>
+								))
+							)}
 						</tbody>
 					</table>
 				</div>
