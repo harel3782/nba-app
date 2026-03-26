@@ -80,9 +80,19 @@ def update_standings():
 			team_code_espn = entry['team']['abbreviation']
 			team_code_nba = TEAM_MAPPING.get(team_code_espn, team_code_espn)
 			
-			rank = index + 1
-			wins = next((int(s['value']) for s in entry['stats'] if s['name'] == 'wins'), 0)
-			losses = next((int(s['value']) for s in entry['stats'] if s['name'] == 'losses'), 0)
+			# Extract exact ranking using playoffSeed instead of array index
+			rank = index + 1 
+			wins = 0
+			losses = 0
+			
+			for stat in entry.get('stats', []):
+				stat_name = stat.get('name')
+				if stat_name == 'playoffSeed':
+					rank = int(stat.get('value', rank))
+				elif stat_name == 'wins':
+					wins = int(stat.get('value', 0))
+				elif stat_name == 'losses':
+					losses = int(stat.get('value', 0))
 			
 			old_row = db_map.get(team_code_nba)
 			if old_row:
