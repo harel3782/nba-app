@@ -70,31 +70,54 @@ def update_standings():
 	existing_data = supabase.table("official_regular_standings").select("*").execute()
 	db_map = {item['team_id']: item for item in existing_data.data}
 
-	db_rows = []
 	# Use timezone-aware datetime to prevent subtraction errors
 	current_time = datetime.now(timezone.utc)
 	
+	all_teams_data = {'East': [], 'West': []}
+	
+	# First pass: Collect all teams and their records
 	for conference in data.get('children', []):
 		conf_name = 'East' if 'East' in conference.get('name', '') else 'West'
-		for index, entry in enumerate(conference.get('standings', {}).get('entries', [])):
+		
+		for entry in conference.get('standings', {}).get('entries', []):
 			team_code_espn = entry['team']['abbreviation']
 			team_code_nba = TEAM_MAPPING.get(team_code_espn, team_code_espn)
 			
-			# Extract exact ranking using playoffSeed instead of array index
-			rank = index + 1 
 			wins = 0
 			losses = 0
 			
 			for stat in entry.get('stats', []):
 				stat_name = stat.get('name')
-				if stat_name == 'playoffSeed':
-					rank = int(stat.get('value', rank))
-				elif stat_name == 'wins':
+				if stat_name == 'wins':
 					wins = int(stat.get('value', 0))
 				elif stat_name == 'losses':
 					losses = int(stat.get('value', 0))
 			
-			old_row = db_map.get(team_code_nba)
+			# Calculate win percentage for accurate sorting
+			total_games = wins + losses
+			win_pct = (wins / total_games) if total_games > 0 else 0
+			
+			all_teams_data[conf_name].append({
+				'team_id': team_code_nba,
+				'wins': wins,
+				'losses': losses,
+				'win_pct': win_pct
+			})
+
+	db_rows = []
+	
+	# Second pass: Sort teams mathematically by win percentage and assign accurate ranks
+	for conf_name, teams in all_teams_data.items():
+		# Sort by win percentage (descending), then by wins (descending) to handle ties gracefully
+		sorted_teams = sorted(teams, key=lambda x: (x['win_pct'], x['wins']), reverse=True)
+		
+		for index, team_data in enumerate(sorted_teams):
+			rank = index + 1
+			team_id = team_data['team_id']
+			wins = team_data['wins']
+			losses = team_data['losses']
+			
+			old_row = db_map.get(team_id)
 			if old_row:
 				# Ensure timezone awareness for the database timestamp
 				last_update_str = old_row['last_updated'].replace('Z', '+00:00')
@@ -113,7 +136,7 @@ def update_standings():
 				prev_rank = rank
 
 			db_rows.append({
-				"team_id": team_code_nba,
+				"team_id": team_id,
 				"conference": conf_name,
 				"actual_rank": rank,
 				"previous_rank": prev_rank,
@@ -122,7 +145,7 @@ def update_standings():
 				"last_updated": current_time.isoformat()
 			})
 
-	print("Upserting data to official_regular_standings...")
+	print("Upserting mathematically sorted data to official_regular_standings...")
 	supabase.table('official_regular_standings').upsert(db_rows).execute()
 	
 	print("Standings updated successfully!")
