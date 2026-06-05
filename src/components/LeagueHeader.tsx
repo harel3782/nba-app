@@ -46,15 +46,15 @@ export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, se
 	};
 
 	return (
-		<div className="w-full max-w-4xl mx-auto flex justify-between items-end mb-8 px-2 border-b border-white/10 pb-4">
-			<div>
-				<h2 className="text-4xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg flex items-center gap-4">
+		<div className="w-full max-w-4xl mx-auto flex flex-wrap justify-between items-start gap-3 mb-8 px-2 border-b border-white/10 pb-4">
+			<div className="min-w-0">
+				<h2 className="text-2xl sm:text-4xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg">
 					{leagueDetails.name}
 				</h2>
-				<div className="flex items-center gap-4 mt-2">
-					<div onClick={copyToClipboard} className="text-sm text-blue-300 cursor-pointer hover:text-white transition-colors flex items-center gap-1">
-						<span>ID: {currentLeagueId}</span>
-						{copySuccess ? <span className="text-green-400 font-bold">✓ Copied</span> : <span>📋</span>}
+				<div className="flex items-center gap-2 mt-2 min-w-0">
+					<div onClick={copyToClipboard} className="text-xs sm:text-sm text-blue-300 cursor-pointer hover:text-white transition-colors flex items-center gap-1 min-w-0">
+						<span className="truncate max-w-[150px] sm:max-w-none">ID: {currentLeagueId}</span>
+						{copySuccess ? <span className="text-green-400 font-bold whitespace-nowrap">✓ Copied</span> : <span>📋</span>}
 					</div>
 				</div>
 			</div>

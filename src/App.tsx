@@ -166,12 +166,12 @@ function App() {
 							setIsSettingsOpen={setIsSettingsOpen} 
 						/>
 						
-						<nav className="flex gap-2 mb-10 bg-black/40 p-1.5 rounded-2xl border border-white/5 w-fit mx-auto shadow-2xl backdrop-blur-xl">
+						<nav className="flex flex-wrap gap-2 mb-10 bg-black/40 p-1.5 rounded-2xl border border-white/5 w-fit mx-auto shadow-2xl backdrop-blur-xl justify-center">
 							{['standings', 'leaderboard', 'bracket'].map((t) => (
-								<button 
-									key={t} 
-									onClick={() => setActiveTab(t as any)} 
-									className={`px-10 py-3 rounded-xl text-xs font-black uppercase transition-all ${activeTab === t ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+								<button
+									key={t}
+									onClick={() => setActiveTab(t as any)}
+									className={`px-5 sm:px-10 py-3 rounded-xl text-xs font-black uppercase transition-all ${activeTab === t ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
 								>
 									{t === 'bracket' ? 'Playoffs' : t}
 								</button>

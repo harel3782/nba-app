@@ -96,22 +96,22 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 						/>
 					</div>
 					
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
 							<label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Regular Season Lock</label>
-							<input 
-								type="datetime-local" 
-								value={regLockDate} 
-								onChange={e => setRegLockDate(e.target.value)} 
+							<input
+								type="datetime-local"
+								value={regLockDate}
+								onChange={e => setRegLockDate(e.target.value)}
 								className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none transition-colors text-xs"
 							/>
 						</div>
 						<div>
 							<label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Playoff Bracket Lock</label>
-							<input 
-								type="datetime-local" 
-								value={playLockDate} 
-								onChange={e => setPlayLockDate(e.target.value)} 
+							<input
+								type="datetime-local"
+								value={playLockDate}
+								onChange={e => setPlayLockDate(e.target.value)}
 								className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none transition-colors text-xs"
 							/>
 						</div>

@@ -71,13 +71,22 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 	async function saveBracket() {
 		if (isLocked) return;
 		setIsSaving(true);
-		const toInsert = Object.entries(picks).filter(([_, p]) => p.team).map(([slug, p]) => ({
-			user_id: userId, league_id: leagueId, stage_slug: slug, team_id: p.team!.id, predicted_games: p.games
-		}));
+		const toInsert = Object.entries(picks)
+			.filter(([_, p]) => p.team)
+			.map(([slug, p]) => ({
+				user_id: userId,
+				league_id: leagueId,
+				stage_slug: slug,
+				team_id: p.team!.id,
+				predicted_games: p.games
+			}));
+
 		try {
 			await supabase.from('user_bracket_picks').delete().eq('user_id', userId).eq('league_id', leagueId);
-			if (toInsert.length > 0) await supabase.from('user_bracket_picks').insert(toInsert);
-			
+			if (toInsert.length > 0) {
+				await supabase.from('user_bracket_picks').insert(toInsert);
+			}
+
 			setSaveSuccess(true);
 			if (onSaveSuccess) {
 				setTimeout(() => {
@@ -85,9 +94,9 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 				}, 500);
 			}
 			setTimeout(() => setSaveSuccess(false), 3000);
-		} catch (e) { 
-			console.error(e); 
-		} finally { 
+		} catch (e) {
+			console.error(e);
+		} finally {
 			setIsSaving(false);
 		}
 	}
@@ -133,14 +142,14 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 		const current = picks[stageKey] || { team: null, games: stageKey.includes('_PI_') ? 1 : 4 };
 		const isSelected = (t: any) => current.team && t && current.team.id === t.id;
 		return (
-			<div className={`flex flex-col bg-[#0f172a] rounded-lg w-28 lg:w-32 overflow-hidden shadow-xl border ${isFinals ? 'border-yellow-500/50' : 'border-white/10'}`}>
-				<div className="text-[8px] font-black uppercase py-1 bg-black/40 text-gray-400 text-center">{label}</div>
-				<div className="p-1 space-y-1">
+			<div className={`flex flex-col bg-[#0f172a] rounded-lg w-20 sm:w-24 md:w-28 lg:w-32 overflow-hidden shadow-xl border ${isFinals ? 'border-yellow-500/50' : 'border-white/10'}`}>
+				<div className="text-[8px] sm:text-[10px] font-black uppercase py-0.5 sm:py-1 bg-black/40 text-gray-400 text-center">{label}</div>
+				<div className="p-0.5 sm:p-1 space-y-0.5 sm:space-y-1">
 					{[ {t: teamA, s: seedA}, {t: teamB, s: seedB} ].map((item, i) => (
 						<button key={i} disabled={!item.t || isLocked} onClick={() => makePick(stageKey, item.t)}
-							className={`w-full flex items-center gap-1.5 p-1 rounded transition-colors text-[9px] font-bold ${isSelected(item.t) ? 'bg-orange-500/20 border border-orange-500' : 'bg-white/5 border border-transparent'}`}>
-							<span className="text-gray-500 w-3 text-right">{item.s}</span>
-							{item.t ? (<><img src={item.t.logo} className="w-4 h-4 object-contain" /> <span className={isSelected(item.t) ? 'text-orange-400' : 'text-gray-300'}>{item.t.id}</span></>) : <span className="text-gray-600 italic">TBD</span>}
+							className={`w-full flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded transition-colors text-[8px] sm:text-[10px] font-bold ${isSelected(item.t) ? 'bg-orange-500/20 border border-orange-500' : 'bg-white/5 border border-transparent'}`}>
+							<span className="text-gray-500 w-3 text-right text-[9px]">{item.s}</span>
+							{item.t ? (<><img src={item.t.logo} className="w-4 h-4 object-contain" /> <span className={isSelected(item.t) ? 'text-orange-400' : 'text-gray-300'}>{item.t.id}</span></>) : <span className="text-gray-600 italic text-[9px]">TBD</span>}
 						</button>
 					))}
 				</div>
@@ -148,7 +157,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 					<div className="flex border-t border-white/5 bg-black/20 p-1 justify-center gap-1">
 						{[4, 5, 6, 7].map(g => (
 							<button key={g} disabled={isLocked} onClick={() => updateGames(stageKey, g)}
-								className={`w-5 h-5 flex items-center justify-center rounded text-[8px] font-black ${current.games === g ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-300'}`}>{g}</button>
+								className={`w-6 h-6 flex items-center justify-center rounded text-[9px] font-black ${current.games === g ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-300'}`}>{g}</button>
 						))}
 					</div>
 				)}
@@ -161,13 +170,14 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 	if (loading && westSeeds.length === 0) return <div className="text-center py-20 animate-pulse text-orange-500 font-black italic">REFRESHING BRACKET...</div>;
 
 	return (
-		<div className="w-full overflow-x-auto pb-10 flex flex-col items-center relative">
+		<div className="w-full pb-10 flex flex-col items-center relative">
 			{loading && westSeeds.length > 0 && (
 				<div className="absolute top-0 right-10">
 					<div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
 				</div>
 			)}
-			<div className="min-w-max flex gap-3 px-4">
+			<div className="w-full overflow-x-auto scrollbar-hide">
+				<div className="min-w-max flex gap-1 sm:gap-3 px-2 sm:px-4">
 				<div className="flex gap-3">
 					<div className="flex flex-col justify-center gap-4">
 						<MatchupBox stageKey="W_PI_78" teamA={westSeeds[6]} seedA="7" teamB={westSeeds[7]} seedB="8" label="PI (7v8)" />
@@ -188,7 +198,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 						<MatchupBox stageKey="W_CF" teamA={picks['W_R2_1']?.team} teamB={picks['W_R2_2']?.team} label="West Finals" />
 					</div>
 				</div>
-				<div className="flex flex-col justify-center px-4">
+				<div className="flex flex-col justify-center px-1 sm:px-4">
 					<MatchupBox stageKey="FINALS" teamA={picks['W_CF']?.team} seedA="W" teamB={picks['E_CF']?.team} seedB="E" label="NBA Finals" isFinals={true} />
 				</div>
 				<div className="flex gap-3">
@@ -212,8 +222,9 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 					</div>
 				</div>
 			</div>
+			</div>
 			{!isLocked && (
-				<button onClick={saveBracket} disabled={isSaving} className={`mt-8 px-12 py-3 rounded-xl font-black uppercase transition-all ${saveSuccess ? 'bg-green-600' : 'bg-orange-600 hover:scale-105'} text-white shadow-xl`}>
+				<button onClick={saveBracket} disabled={isSaving} className={`mx-auto mt-8 px-12 py-3 rounded-xl font-black uppercase transition-all ${saveSuccess ? 'bg-green-600' : 'bg-orange-600 hover:scale-105'} text-white shadow-xl`}>
 					{isSaving ? 'Saving...' : saveSuccess ? '✔ Saved' : 'Save Picks'}
 				</button>
 			)}

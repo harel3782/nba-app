@@ -20,14 +20,12 @@ export function ProfileModal({ isOpen, onClose, currentName, onUpdate }: Props) 
 		setLoading(true);
 
 		try {
-			// ✅ עדכון ה-Metadata ב-Auth בלבד (אין יותר טבלת profiles)
 			const { error } = await supabase.auth.updateUser({
 				data: { display_name: username.trim() },
 			});
 
 			if (error) throw error;
 
-			// ✅ עדכון ה-UI באופן מיידי
 			onUpdate(username.trim());
 			onClose();
 		} catch (error: any) {

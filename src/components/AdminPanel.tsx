@@ -7,9 +7,8 @@ export function AdminPanel() {
 			<div className="bg-red-600 text-white text-center font-bold text-xs py-2 uppercase tracking-[0.2em]">⚠️ Super Admin Control Panel ⚠️</div>
 			<div className="p-6 flex flex-col gap-10">
 				<section>
-					<div className="mb-4 border-b border-gray-700 pb-2 flex justify-between items-center">
+					<div className="mb-4 border-b border-gray-700 pb-2">
 						<h2 className="text-xl font-bold text-white">1. Live Standings Monitor</h2>
-						<span className="text-[10px] bg-green-900 text-green-300 px-2 py-1 rounded border border-green-700 font-bold tracking-wider">● AUTO-SYNC ACTIVE</span>
 					</div>
 					<AdminStandingsMonitor />
 				</section>

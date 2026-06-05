@@ -156,7 +156,7 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 													<img src={team.logo} alt={team.name} className="w-10 h-10 md:w-11 md:h-11 object-contain drop-shadow-md" draggable={false} />
 													<div className="flex flex-col">
 														<span className="font-bold text-gray-200 text-sm md:text-base tracking-wide">{team.name}</span>
-														<span className="text-[10px] md:text-xs uppercase tracking-wider text-gray-500 font-medium">{team.id}</span>
+														<span className="text-xs uppercase tracking-wider text-gray-500 font-medium">{team.id}</span>
 													</div>
 												</div>
 												<div className="flex items-center gap-3 md:gap-4">

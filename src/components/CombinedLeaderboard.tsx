@@ -138,29 +138,29 @@ export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, c
 				<div className="overflow-x-auto">
 					<table className="w-full text-left border-collapse">
 						<thead>
-							<tr className="bg-black/60 text-[9px] uppercase tracking-widest text-gray-400">
-								<th className="p-4 w-12">#</th>
-								<th className="p-4">Player</th>
-								<th className="p-4 text-center">Regular</th>
-								<th className="p-4 text-center">Playoff</th>
-								<th className="p-4 text-right text-orange-400">Total</th>
+							<tr className="bg-black/60 text-xs uppercase tracking-widest text-gray-400">
+								<th className="p-2 sm:p-4 w-12">#</th>
+								<th className="p-2 sm:p-4">Player</th>
+								<th className="p-2 sm:p-4 text-center">Regular</th>
+								<th className="p-2 sm:p-4 text-center">Playoff</th>
+								<th className="p-2 sm:p-4 text-right text-orange-400">Total</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-white/5">
 							{leaderboard.length === 0 ? (
 								<tr>
-									<td colSpan={5} className="p-10 text-center text-gray-500 text-xs uppercase tracking-widest font-bold">Waiting for predictions...</td>
+									<td colSpan={5} className="p-4 sm:p-10 text-center text-gray-500 text-xs uppercase tracking-widest font-bold">Waiting for predictions...</td>
 								</tr>
 							) : (
 								leaderboard.map((user, idx) => (
 									<tr key={user.user_id} className={`transition-all ${user.user_id === currentUserId ? 'bg-orange-500/10' : 'hover:bg-white/5'}`}>
-										<td className="p-4 font-black text-gray-500">{idx + 1}.</td>
-										<td className="p-4 font-bold text-white text-sm">
+										<td className="p-2 sm:p-4 font-black text-gray-500">{idx + 1}.</td>
+										<td className="p-2 sm:p-4 font-bold text-white text-sm">
 											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
 										</td>
-										<td className="p-4 text-center text-blue-300 font-bold text-xs">{user.regular_points}</td>
-										<td className="p-4 text-center text-green-400 font-black text-xs">+{user.bracket_points}</td>
-										<td className="p-4 text-right font-black text-xl text-orange-500 italic">{user.total_combined}</td>
+										<td className="p-2 sm:p-4 text-center text-blue-300 font-bold text-xs">{user.regular_points}</td>
+										<td className="p-2 sm:p-4 text-center text-green-400 font-black text-xs">+{user.bracket_points}</td>
+										<td className="p-2 sm:p-4 text-right font-black text-xl text-orange-500 italic">{user.total_combined}</td>
 									</tr>
 								))
 							)}

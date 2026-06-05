@@ -29,9 +29,10 @@ export function Header({
 					{isSuperAdmin && (
 						<button
 							onClick={() => setShowAdminPanel(!showAdminPanel)}
-							className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all border ${showAdminPanel ? 'bg-red-600 text-white border-red-400 shadow-[0_0_15px_rgba(220,38,38,0.5)] animate-pulse' : 'bg-black/30 text-gray-400 border-white/10 hover:bg-black/50 hover:text-white'}`}
+							className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all border ${showAdminPanel ? 'bg-red-600 text-white border-red-400 shadow-[0_0_15px_rgba(220,38,38,0.5)] animate-pulse' : 'bg-black/30 text-gray-400 border-white/10 hover:bg-black/50 hover:text-white'}`}
 						>
-							{showAdminPanel ? 'Close Admin' : 'Admin Panel'}
+							<span className="block sm:hidden">⚙️</span>
+							<span className="hidden sm:block">{showAdminPanel ? 'Close Admin' : 'Admin Panel'}</span>
 						</button>
 					)}
 

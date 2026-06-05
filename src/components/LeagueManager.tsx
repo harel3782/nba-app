@@ -9,8 +9,8 @@ interface League {
 interface Props {
 	userId: string;
 	currentLeagueId: string | null;
-	onLeagueChange: (leagueId: string, leagueName: string) => void;
-	refreshTrigger?: number; // FIX: Added this explicitly for Vercel
+	onLeagueChange: (leagueId: string, leagueName?: string) => void;
+	refreshTrigger?: number;
 }
 
 export function LeagueManager({ userId, currentLeagueId, onLeagueChange, refreshTrigger }: Props) {

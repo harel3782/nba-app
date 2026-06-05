@@ -102,12 +102,50 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 		const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '✔';
 
 		return (
-			<div className={`flex items-center justify-between px-2 py-1 rounded-md border font-black text-[11px] w-[3.8rem] mx-auto transition-all ${colorClass}`}>
-				<span className="text-white text-[12px]">{predictedRank}</span>
+			<div className={`flex items-center justify-between px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md border font-black text-[9px] sm:text-[10px] lg:text-[11px] w-[3.2rem] sm:w-[3.5rem] lg:w-[3.8rem] mx-auto transition-all ${colorClass}`}>
+				<span className="text-white text-[10px] sm:text-[11px] lg:text-[12px]">{predictedRank}</span>
 				<div className="flex items-center gap-0.5 opacity-80">
-					<span className="text-[9px]">{arrow}</span>
-					{absDiff !== 0 && <span>{absDiff}</span>}
+					<span className="text-[8px] sm:text-[8px]">{arrow}</span>
+					{absDiff !== 0 && <span className="text-[7px] sm:text-[8px]">{absDiff}</span>}
 				</div>
+			</div>
+		);
+	};
+
+	const renderMobileCards = (teams: Team[]) => {
+		return (
+			<div className="space-y-3 px-2">
+				{teams.map((team, idx) => {
+					const s = standings[team.id];
+					const actualRank = s?.actual_rank;
+					return (
+						<div key={team.id} className="bg-black/40 border border-white/10 rounded-lg p-3 shadow-lg backdrop-blur-sm">
+							<div className="flex items-center justify-between mb-3">
+								<div className="flex items-center gap-2">
+									<span className="text-gray-500 font-black text-sm w-5">{idx + 1}.</span>
+									<div className="flex items-center justify-center w-4">
+										{renderTrend(team.id)}
+									</div>
+									<img src={team.logo} className="w-5 h-5 object-contain" />
+									<span className="font-bold text-gray-100 text-xs">{team.id}</span>
+								</div>
+								<div className="text-gray-400 text-[10px]">Rank: {actualRank || '-'}</div>
+							</div>
+							<div className="grid grid-cols-3 gap-2">
+								{leaderboard.map((user) => (
+									<div key={user.user_id} className="text-center">
+										<div className="text-[10px] font-bold text-gray-400 mb-1 truncate">
+											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
+										</div>
+										<div className="flex justify-center">
+											{renderPredictionBadge(predictionsMap[team.id]?.[user.user_id], actualRank)}
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					);
+				})}
 			</div>
 		);
 	};
@@ -121,21 +159,21 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 				<div className="bg-[#1D428A]/80 p-4 border-b border-white/10">
 					<h3 className="text-lg font-black uppercase italic tracking-widest text-white">{title} Conference</h3>
 				</div>
-				<div className="overflow-x-auto scrollbar-hide">
-					<table className="w-full text-left border-collapse min-w-max">
+				<div className="hidden sm:block overflow-x-auto scrollbar-hide">
+					<table className="w-full text-left border-collapse">
 						<thead>
-							<tr className="bg-[#0f172a] text-[10px] uppercase tracking-wider text-gray-400">
-								<th className="sticky left-0 bg-[#0f172a] z-20 p-4 border-b border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Team</th>
-								<th className="p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-12">W</th>
-								<th className="p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-12">L</th>
-								<th className="p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-14 text-orange-400">GB</th>
+							<tr className="bg-[#0f172a] text-xs uppercase tracking-wider text-gray-400">
+								<th className="sticky left-0 bg-[#0f172a] z-20 p-1.5 sm:p-2 lg:p-4 border-b border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Team</th>
+								<th className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-12">W</th>
+								<th className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-12">L</th>
+								<th className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 border-b border-white/10 border-l border-white/5 text-center bg-black/40 w-14 text-orange-400">GB</th>
 								{leaderboard.map((user) => (
-									<th key={user.user_id} className={`p-3 border-b border-white/5 text-center min-w-[5.5rem] border-l border-white/5 ${user.user_id === currentUserId ? 'bg-orange-900/20 text-orange-300' : ''}`}>
+									<th key={user.user_id} className={`p-1.5 sm:p-2 lg:p-3 border-b border-white/5 text-center min-w-[4.5rem] lg:min-w-[5.5rem] border-l border-white/5 ${user.user_id === currentUserId ? 'bg-orange-900/20 text-orange-300' : ''}`}>
 										<div className="flex flex-col items-center">
-											<span className="text-white text-[11px] truncate max-w-[4.8rem]">
+											<span className="text-white text-[9px] sm:text-[10px] lg:text-[11px] truncate max-w-[3.8rem] sm:max-w-[4.5rem] lg:max-w-[4.8rem]">
 												{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
 											</span>
-											<span className="text-green-400 text-[10px] font-black">{conf === 'West' ? (user.west_score || 0) : (user.east_score || 0)} PTS</span>
+											<span className="text-green-400 text-[8px] sm:text-[9px] lg:text-[10px] font-black">{conf === 'West' ? (user.west_score || 0) : (user.east_score || 0)} PTS</span>
 										</div>
 									</th>
 								))}
@@ -154,7 +192,7 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 
 								return (
 									<tr key={team.id} className="border-b border-white/5 hover:bg-white/5 group">
-										<td className="sticky left-0 bg-[#162032] z-10 p-3 lg:p-4 flex items-center gap-3">
+										<td className="sticky left-0 bg-[#162032] z-10 p-1.5 sm:p-2 lg:p-4 flex items-center gap-2 sm:gap-3">
 											<span className="text-gray-500 font-black w-4 text-[11px]">{idx + 1}.</span>
 											<div className="flex items-center justify-center">
 												{renderTrend(team.id)}
@@ -162,9 +200,9 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 											<img src={team.logo} className="w-6 h-6 object-contain" />
 											<span className="font-bold text-gray-200 text-xs tracking-wide">{team.id}</span>
 										</td>
-										<td className="p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.wins ?? '-'}</td>
-										<td className="p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.losses ?? '-'}</td>
-										<td className="p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{gbDisplay}</td>
+										<td className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.wins ?? '-'}</td>
+										<td className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.losses ?? '-'}</td>
+										<td className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{gbDisplay}</td>
 										{leaderboard.map((user) => (
 											<td key={user.user_id} className={`p-2 text-center border-l border-white/5 ${user.user_id === currentUserId ? 'bg-orange-900/10' : ''}`}>
 												{renderPredictionBadge(predictionsMap[team.id]?.[user.user_id], actualRank)}
@@ -196,7 +234,7 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 					</div>
 				)}
 				<h4 className="text-center text-[11px] font-black uppercase tracking-[0.4em] text-orange-400 mb-5 italic">Overall Scoreboard</h4>
-				<div className="grid grid-cols-5 gap-2 text-center border-b border-white/10 pb-3 mb-3 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+				<div className="grid grid-cols-5 gap-2 text-center border-b border-white/10 pb-3 mb-3 text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest">
 					<div className="text-left pl-3">Player</div>
 					<div>West</div>
 					<div>East</div>
@@ -228,8 +266,16 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 				</div>
 			</div>
 			<div className="w-full flex flex-col xl:flex-row gap-8 items-start">
-				{renderConferenceTable('Western', westTeams, 'West')}
-				{renderConferenceTable('Eastern', eastTeams, 'East')}
+				<div className="sm:hidden w-full">
+					<h2 className="text-2xl font-black uppercase italic tracking-tighter text-white mb-4">West</h2>
+					{renderMobileCards(westTeams)}
+					<h2 className="text-2xl font-black uppercase italic tracking-tighter text-white mb-4 mt-6">East</h2>
+					{renderMobileCards(eastTeams)}
+				</div>
+				<div className="hidden sm:flex w-full gap-8">
+					{renderConferenceTable('Western', westTeams, 'West')}
+					{renderConferenceTable('Eastern', eastTeams, 'East')}
+				</div>
 			</div>
 		</div>
 	);
