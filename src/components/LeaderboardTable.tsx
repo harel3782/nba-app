@@ -234,10 +234,10 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 					</div>
 				)}
 				<h4 className="text-center text-[11px] font-black uppercase tracking-[0.4em] text-orange-400 mb-5 italic">Overall Scoreboard</h4>
-				<div className="grid grid-cols-5 gap-2 text-center border-b border-white/10 pb-3 mb-3 text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest">
+				<div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center border-b border-white/10 pb-3 mb-3 text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest">
 					<div className="text-left pl-3">Player</div>
-					<div>West</div>
-					<div>East</div>
+					<div className="hidden sm:block">West</div>
+					<div className="hidden sm:block">East</div>
 					<div className="text-white">Total</div>
 					<div className="text-orange-500/80">Diff</div>
 				</div>
@@ -248,15 +248,15 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 						leaderboard.map((user, idx) => {
 							const diff = user.total_score - leaderScore;
 							return (
-								<div key={user.user_id} className={`grid grid-cols-5 gap-2 text-center py-2.5 rounded-xl transition-all ${user.user_id === currentUserId ? 'bg-orange-500/15 border border-orange-500/30 shadow-lg' : 'hover:bg-white/5 border border-transparent'}`}>
-									<div className="text-left pl-3 flex items-center gap-2.5">
-										<span className="text-[11px] font-black text-gray-600">{idx + 1}.</span>
+								<div key={user.user_id} className={`grid grid-cols-3 sm:grid-cols-5 gap-2 text-center py-2.5 rounded-xl transition-all ${user.user_id === currentUserId ? 'bg-orange-500/15 border border-orange-500/30 shadow-lg' : 'hover:bg-white/5 border border-transparent'}`}>
+									<div className="text-left pl-2 sm:pl-3 flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+										<span className="text-[10px] sm:text-[11px] font-black text-gray-600 flex-shrink-0">{idx + 1}.</span>
 										<span className="font-bold text-gray-100 text-xs truncate">
 											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
 										</span>
 									</div>
-									<div className="text-blue-400/90 font-bold text-xs">{user.west_score || 0}</div>
-									<div className="text-blue-400/90 font-bold text-xs">{user.east_score || 0}</div>
+									<div className="hidden sm:block text-blue-400/90 font-bold text-xs">{user.west_score || 0}</div>
+									<div className="hidden sm:block text-blue-400/90 font-bold text-xs">{user.east_score || 0}</div>
 									<div className="text-green-400 font-black text-sm">{user.total_score || 0}</div>
 									<div className="text-orange-500/80 text-xs font-black">{diff === 0 ? '-' : diff}</div>
 								</div>
