@@ -13,10 +13,17 @@ interface Props {
 	onDelete?: () => void;
 }
 
+const toLocalDatetimeInput = (dateStr: string | null) => {
+	if (!dateStr) return '';
+	const d = new Date(dateStr);
+	const pad = (n: number) => String(n).padStart(2, '0');
+	return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, currentRegularLockDate, currentPlayoffLockDate, currentScoringType, onUpdate, onDelete }: Props) {
 	const [name, setName] = useState(currentName);
-	const [regLockDate, setRegLockDate] = useState(currentRegularLockDate ? new Date(currentRegularLockDate).toISOString().slice(0, 16) : '');
-	const [playLockDate, setPlayLockDate] = useState(currentPlayoffLockDate ? new Date(currentPlayoffLockDate).toISOString().slice(0, 16) : '');
+	const [regLockDate, setRegLockDate] = useState(toLocalDatetimeInput(currentRegularLockDate));
+	const [playLockDate, setPlayLockDate] = useState(toLocalDatetimeInput(currentPlayoffLockDate));
 	const [scoringType] = useState(currentScoringType || 'standard');
 	const [saving, setSaving] = useState(false);
 	const [deleting, setDeleting] = useState(false);
@@ -39,7 +46,7 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 
 		setSaving(false);
 		if (error) {
-			console.error(error); // This is where you saw the 'predictions' error
+			console.error(error);
 			alert('Error updating league');
 		} else {
 			onUpdate();

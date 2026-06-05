@@ -38,6 +38,8 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 	}, [triggerSave]);
 
 	async function loadUserPredictionsAndStandings() {
+		if (!userId || !leagueId) return;
+
 		// Only show loading state if we have no teams data yet
 		if (teams.length === 0) {
 			setInitialLoad(true);
@@ -63,7 +65,9 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 		setActualStandings(standingsMap);
 
 		if (predData && predData.length > 0) {
-			const orderedTeams = predData.map((p) => conferenceTeams.find((t) => t.id === p.team_id)!);
+			const orderedTeams = predData
+				.map((p) => conferenceTeams.find((t) => t.id === p.team_id))
+				.filter((t): t is Team => !!t);
 			const missingTeams = conferenceTeams.filter((t) => !orderedTeams.some((ot) => ot.id === t.id));
 			setTeams([...orderedTeams, ...missingTeams]);
 		} else {

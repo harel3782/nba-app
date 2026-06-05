@@ -18,6 +18,7 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange, refresh
 	const [newLeagueName, setNewLeagueName] = useState('');
 	const [joinCode, setJoinCode] = useState('');
 	const [activeTab, setActiveTab] = useState<'list' | 'create' | 'join'>('list');
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	useEffect(() => {
 		fetchMyLeagues();
@@ -50,58 +51,68 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange, refresh
 
 	async function createLeague() {
 		if (!newLeagueName) return;
+		setIsSubmitting(true);
 
-		const { data: league, error } = await supabase
-			.from('leagues')
-			.insert({ name: newLeagueName, created_by: userId })
-			.select()
-			.single();
+		try {
+			const { data: league, error } = await supabase
+				.from('leagues')
+				.insert({ name: newLeagueName, created_by: userId })
+				.select()
+				.single();
 
-		if (error) {
-			console.error(error);
-			alert('Error creating league');
-			return;
+			if (error) {
+				console.error(error);
+				alert('Error creating league');
+				return;
+			}
+
+			await supabase.from('league_members').insert({
+				league_id: league.id,
+				user_id: userId,
+			});
+
+			await fetchMyLeagues();
+			onLeagueChange(league.id, league.name);
+			setActiveTab('list');
+			setNewLeagueName('');
+		} finally {
+			setIsSubmitting(false);
 		}
-
-		await supabase.from('league_members').insert({
-			league_id: league.id,
-			user_id: userId,
-		});
-
-		await fetchMyLeagues();
-		onLeagueChange(league.id, league.name);
-		setActiveTab('list');
-		setNewLeagueName('');
 	}
 
 	async function joinLeague() {
 		if (!joinCode) return;
+		setIsSubmitting(true);
 
-		const { data: league, error: leagueError } = await supabase
-			.from('leagues')
-			.select('name')
-			.eq('id', joinCode)
-			.single();
+		try {
+			const { data: league, error: leagueError } = await supabase
+				.from('leagues')
+				.select('name')
+				.eq('id', joinCode)
+				.single();
 
-		if (leagueError || !league) {
-			alert('League not found check code.');
-			return;
+			if (leagueError || !league) {
+				alert('League not found check code.');
+				return;
+			}
+
+			const { error } = await supabase.from('league_members').insert({
+				league_id: joinCode,
+				user_id: userId,
+			});
+
+			if (error && error.code !== '23505') {
+				alert('Could not join league.');
+				return;
+			}
+
+			await fetchMyLeagues();
+			onLeagueChange(joinCode, league.name);
+			setActiveTab('list');
+			setJoinCode('');
+		} finally {
+			setIsSubmitting(false);
 		}
-
-		const { error } = await supabase.from('league_members').insert({
-			league_id: joinCode,
-			user_id: userId,
-		});
-
-		if (error && error.code !== '23505') {
-			alert('Could not join league.');
-			return;
-		}
-
-		await fetchMyLeagues();
-		onLeagueChange(joinCode, league.name);
-		setActiveTab('list');
-		setJoinCode('');
 	}
 
 	return (
@@ -164,9 +175,10 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange, refresh
 					/>
 					<button
 						onClick={createLeague}
-						className="bg-green-500 hover:bg-green-600 text-white px-6 rounded-lg font-bold shadow-lg"
+						disabled={isSubmitting}
+						className="bg-green-500 hover:bg-green-600 disabled:bg-green-700 disabled:opacity-60 text-white px-6 rounded-lg font-bold shadow-lg transition-all"
 					>
-						Create
+						{isSubmitting ? 'Creating...' : 'Create'}
 					</button>
 				</div>
 			)}
@@ -182,9 +194,10 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange, refresh
 					/>
 					<button
 						onClick={joinLeague}
-						className="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-lg font-bold shadow-lg"
+						disabled={isSubmitting}
+						className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-700 disabled:opacity-60 text-white px-6 rounded-lg font-bold shadow-lg transition-all"
 					>
-						Join
+						{isSubmitting ? 'Joining...' : 'Join'}
 					</button>
 				</div>
 			)}

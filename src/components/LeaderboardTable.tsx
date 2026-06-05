@@ -126,12 +126,12 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 									<div className="flex items-center justify-center w-4">
 										{renderTrend(team.id)}
 									</div>
-									<img src={team.logo} className="w-5 h-5 object-contain" />
+									<img src={team.logo} alt={team.id} className="w-5 h-5 object-contain" />
 									<span className="font-bold text-gray-100 text-xs">{team.id}</span>
 								</div>
 								<div className="text-gray-400 text-[10px]">Rank: {actualRank || '-'}</div>
 							</div>
-							<div className="grid grid-cols-3 gap-2">
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
 								{leaderboard.map((user) => (
 									<div key={user.user_id} className="text-center">
 										<div className="text-[10px] font-bold text-gray-400 mb-1 truncate">
@@ -192,13 +192,15 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 
 								return (
 									<tr key={team.id} className="border-b border-white/5 hover:bg-white/5 group">
-										<td className="sticky left-0 bg-[#162032] z-10 p-1.5 sm:p-2 lg:p-4 flex items-center gap-2 sm:gap-3">
-											<span className="text-gray-500 font-black w-4 text-[11px]">{idx + 1}.</span>
-											<div className="flex items-center justify-center">
-												{renderTrend(team.id)}
+										<td className="sticky left-0 bg-[#162032] z-10 p-1.5 sm:p-2 lg:p-4">
+											<div className="flex items-center gap-2 sm:gap-3">
+												<span className="text-gray-500 font-black w-4 text-[11px]">{idx + 1}.</span>
+												<div className="flex items-center justify-center">
+													{renderTrend(team.id)}
+												</div>
+												<img src={team.logo} alt={team.id} className="w-6 h-6 object-contain" />
+												<span className="font-bold text-gray-200 text-xs tracking-wide">{team.id}</span>
 											</div>
-											<img src={team.logo} className="w-6 h-6 object-contain" />
-											<span className="font-bold text-gray-200 text-xs tracking-wide">{team.id}</span>
 										</td>
 										<td className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.wins ?? '-'}</td>
 										<td className="hidden sm:table-cell p-1.5 sm:p-2 lg:p-3 text-center bg-black/30 border-l border-white/5 font-bold text-white text-xs">{s?.losses ?? '-'}</td>

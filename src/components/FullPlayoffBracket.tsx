@@ -149,7 +149,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 						<button key={i} disabled={!item.t || isLocked} onClick={() => makePick(stageKey, item.t)}
 							className={`w-full flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded transition-colors text-[8px] sm:text-[10px] font-bold ${isSelected(item.t) ? 'bg-orange-500/20 border border-orange-500' : 'bg-white/5 border border-transparent'}`}>
 							<span className="text-gray-500 w-3 text-right text-[9px]">{item.s}</span>
-							{item.t ? (<><img src={item.t.logo} className="w-4 h-4 object-contain" /> <span className={isSelected(item.t) ? 'text-orange-400' : 'text-gray-300'}>{item.t.id}</span></>) : <span className="text-gray-600 italic text-[9px]">TBD</span>}
+							{item.t ? (<><img src={item.t.logo} alt={item.t.id} className="w-4 h-4 object-contain" /> <span className={isSelected(item.t) ? 'text-orange-400' : 'text-gray-300'}>{item.t.id}</span></>) : <span className="text-gray-600 italic text-[9px]">TBD</span>}
 						</button>
 					))}
 				</div>
@@ -180,9 +180,9 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 				<div className="min-w-max flex gap-1 sm:gap-3 px-2 sm:px-4">
 				<div className="flex gap-3">
 					<div className="flex flex-col justify-center gap-4">
-						<MatchupBox stageKey="W_PI_78" teamA={westSeeds[6]} seedA="7" teamB={westSeeds[7]} seedB="8" label="PI (7v8)" />
+						<MatchupBox stageKey="W_PI_78" teamA={westSeeds[6] ?? null} seedA="7" teamB={westSeeds[7] ?? null} seedB="8" label="PI (7v8)" />
 						<MatchupBox stageKey="W_PI_8TH" teamA={getLoser(westSeeds[6], westSeeds[7], picks['W_PI_78']?.team)} seedA="L7" teamB={picks['W_PI_910']?.team} seedB="W9" label="PI (8th)" />
-						<MatchupBox stageKey="W_PI_910" teamA={westSeeds[8]} seedA="9" teamB={westSeeds[9]} seedB="10" label="PI (9v10)" />
+						<MatchupBox stageKey="W_PI_910" teamA={westSeeds[8] ?? null} seedA="9" teamB={westSeeds[9] ?? null} seedB="10" label="PI (9v10)" />
 					</div>
 					<div className="flex flex-col justify-around py-4">
 						<MatchupBox stageKey="W_R1_1" teamA={westSeeds[0]} seedA="1" teamB={picks['W_PI_8TH']?.team} seedB="8" label="Round 1" />
@@ -216,9 +216,9 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 						<MatchupBox stageKey="E_R1_4" teamA={eastSeeds[1]} seedA="2" teamB={picks['E_PI_78']?.team} seedB="7" label="Round 1" />
 					</div>
 					<div className="flex flex-col justify-center gap-4">
-						<MatchupBox stageKey="E_PI_78" teamA={eastSeeds[6]} seedA="7" teamB={eastSeeds[7]} seedB="8" label="PI (7v8)" />
+						<MatchupBox stageKey="E_PI_78" teamA={eastSeeds[6] ?? null} seedA="7" teamB={eastSeeds[7] ?? null} seedB="8" label="PI (7v8)" />
 						<MatchupBox stageKey="E_PI_8TH" teamA={getLoser(eastSeeds[6], eastSeeds[7], picks['E_PI_78']?.team)} seedA="L7" teamB={picks['E_PI_910']?.team} seedB="W9" label="PI (8th)" />
-						<MatchupBox stageKey="E_PI_910" teamA={eastSeeds[8]} seedA="9" teamB={eastSeeds[9]} seedB="10" label="PI (9v10)" />
+						<MatchupBox stageKey="E_PI_910" teamA={eastSeeds[8] ?? null} seedA="9" teamB={eastSeeds[9] ?? null} seedB="10" label="PI (9v10)" />
 					</div>
 				</div>
 			</div>

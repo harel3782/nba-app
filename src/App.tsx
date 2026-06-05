@@ -59,7 +59,8 @@ function App() {
 				setLeagueDetails(null);
 				setDisplayName('');
 				setShowAdminPanel(false);
-				localStorage.clear();
+				localStorage.removeItem('nba_currentLeagueId');
+				localStorage.removeItem('nba_activeTab');
 			}
 		});
 		return () => subscription.unsubscribe();
