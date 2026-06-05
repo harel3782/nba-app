@@ -176,7 +176,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 					<div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
 				</div>
 			)}
-			<div className="w-full overflow-x-auto scrollbar-hide">
+			<div className="w-full overflow-x-auto scrollbar-hide lg:flex lg:justify-center">
 				<div className="min-w-max flex gap-1 sm:gap-3 px-2 sm:px-4">
 				<div className="flex gap-3">
 					<div className="flex flex-col justify-center gap-4">
