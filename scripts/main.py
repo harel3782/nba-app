@@ -88,22 +88,27 @@ def update_standings():
 			team_code_espn = entry['team']['abbreviation']
 			team_code_nba = TEAM_MAPPING.get(team_code_espn, team_code_espn)
 			
-			wins, losses = 0, 0
+			wins, losses, playoff_seed = 0, 0, None
 			for stat in entry.get('stats', []):
 				if stat.get('name') == 'wins': wins = int(stat.get('value', 0))
 				elif stat.get('name') == 'losses': losses = int(stat.get('value', 0))
-			
-			total_games = wins + losses
-			win_pct = (wins / total_games) if total_games > 0 else 0
-			
+				elif stat.get('name') == 'playoffSeed': playoff_seed = int(stat.get('value', 0))
+
 			all_teams_data[conf_name].append({
-				'team_id': team_code_nba, 'wins': wins, 'losses': losses, 'win_pct': win_pct
+				'team_id': team_code_nba, 'wins': wins, 'losses': losses, 'playoff_seed': playoff_seed
 			})
 
 	db_rows = []
 	for conf_name, teams in all_teams_data.items():
-		sorted_teams = sorted(teams, key=lambda x: (x['win_pct'], x['wins']), reverse=True)
-		
+		# Use ESPN's playoffSeed (already has proper NBA tiebreakers applied).
+		# Fall back to list position if the stat is missing.
+		has_seeds = all(t['playoff_seed'] is not None for t in teams)
+		if has_seeds:
+			sorted_teams = sorted(teams, key=lambda x: x['playoff_seed'])
+		else:
+			# Fallback: sort by win% then wins (pre-season / no seed available)
+			sorted_teams = sorted(teams, key=lambda x: (x['wins'] / (x['wins'] + x['losses']) if (x['wins'] + x['losses']) > 0 else 0, x['wins']), reverse=True)
+
 		for index, team_data in enumerate(sorted_teams):
 			rank = index + 1
 			team_id = team_data['team_id']
