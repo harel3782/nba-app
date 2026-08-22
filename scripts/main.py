@@ -37,24 +37,37 @@ TEAM_MAPPING = {
 }
 
 def should_run():
-	end_date_str = os.environ.get("END_DATE", "2026-04-15")
+	# --- Season window ---
+	start_date_str = os.environ.get("START_DATE", "2026-10-01")
+	end_date_str   = os.environ.get("END_DATE",   "2027-06-30")
+
+	try:
+		start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+	except ValueError:
+		start_date = date(2026, 10, 1)
+
 	try:
 		end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
 	except ValueError:
-		end_date = date(2026, 4, 15)
+		end_date = date(2027, 6, 30)
 
-	if date.today() > end_date:
-		print(f"Project period ended on {end_date_str}. Skipping.")
+	today = date.today()
+	if today < start_date:
+		print(f"Off-season: 2026-27 season hasn't started yet ({start_date_str}). Sleeping.")
+		return False
+	if today > end_date:
+		print(f"Off-season: season ended on {end_date_str}. Sleeping.")
 		return False
 
+	# --- Hour window ---
 	current_hour = datetime.now(timezone.utc).hour
 	start_h = int(os.environ.get("START_HOUR_UTC", 0))
-	end_h = int(os.environ.get("END_HOUR_UTC", 23))
-	
+	end_h   = int(os.environ.get("END_HOUR_UTC",   10))  # default matches workflow
+
 	if not (start_h <= current_hour <= end_h):
 		print(f"Outside of active hours ({current_hour} UTC). Skipping.")
 		return False
-		
+
 	return True
 
 def update_standings():

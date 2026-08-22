@@ -27,7 +27,8 @@ jobs:
             # Map the existing GitHub secrets to the expected VITE variables
             VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_KEY }}
-            END_DATE: "2026-04-15" 
+            START_DATE: "2026-10-01"  # 2026-27 season tip-off window
+            END_DATE: "2027-06-30"    # covers full 2026-27 playoffs
             START_HOUR_UTC: 0
             END_HOUR_UTC: 10
         run: python scripts/main.py
