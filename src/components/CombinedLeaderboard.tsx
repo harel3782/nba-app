@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { ShareLeaderboardButton } from './ShareLeaderboardButton';
+import { getStagePoints, type ScoringConfig } from '../lib/scoring';
 
 interface Props {
 	leagueId: string;
 	leagueName: string;
+	scoringConfig: ScoringConfig | null;
 	currentUserId: string;
 	refreshTrigger?: number;
 	currentUserName?: string;
@@ -42,13 +44,13 @@ const ID_MAPPING: Record<string, string> = {
 	'FINALS': 'nba_finals'
 };
 
-export function CombinedLeaderboard({ leagueId, leagueName, currentUserId, refreshTrigger, currentUserName }: Props) {
+export function CombinedLeaderboard({ leagueId, leagueName, scoringConfig, currentUserId, refreshTrigger, currentUserName }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [leaderboard, setLeaderboard] = useState<UserScore[]>([]);
 
 	useEffect(() => {
 		if (leagueId) fetchAndCalculate();
-	}, [leagueId, refreshTrigger]);
+	}, [leagueId, refreshTrigger, scoringConfig]);
 
 	async function fetchAndCalculate() {
 		// Only show global loading on first fetch
@@ -75,14 +77,6 @@ export function CombinedLeaderboard({ leagueId, leagueName, currentUserId, refre
 			return;
 		}
 
-		const getStagePoints = (slug: string) => {
-			if (slug === 'FINALS') return { win: 80, bonus: 40 };
-			if (slug.includes('CF')) return { win: 40, bonus: 20 };
-			if (slug.includes('R2')) return { win: 20, bonus: 10 };
-			if (slug.includes('R1')) return { win: 10, bonus: 5 };
-			return { win: 5, bonus: 0 };
-		};
-
 		const scores: Record<string, UserScore> = {};
 
 		regData.forEach(u => {
@@ -102,7 +96,7 @@ export function CombinedLeaderboard({ leagueId, leagueName, currentUserId, refre
 			const res = actuals.find(a => a.match_id === officialMatchId);
 
 			if (res && res.winning_team_id === p.team_id) {
-				const pts = getStagePoints(p.stage_slug);
+				const pts = getStagePoints(p.stage_slug, scoringConfig);
 				
 				if (scores[p.user_id]) {
 					scores[p.user_id].bracket_points += pts.win;

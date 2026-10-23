@@ -3,12 +3,14 @@ import { CombinedLeaderboard } from './CombinedLeaderboard';
 import { FullPlayoffBracket } from './FullPlayoffBracket';
 import { LeaderboardTable } from './LeaderboardTable';
 import { LockCountdown } from './LockCountdown';
+import type { ScoringConfig } from '../lib/scoring';
 
 interface MainContentProps {
 	activeTab: 'standings' | 'leaderboard' | 'bracket';
 	session: any;
 	currentLeagueId: string;
 	leagueName: string;
+	scoringConfig: ScoringConfig | null;
 	regularLocked: boolean;
 	playoffLocked: boolean;
 	regularLockAt: string | null;
@@ -27,6 +29,7 @@ export function MainContent({
 	session,
 	currentLeagueId,
 	leagueName,
+	scoringConfig,
 	regularLocked,
 	playoffLocked,
 	regularLockAt,
@@ -74,8 +77,9 @@ export function MainContent({
 						<CombinedLeaderboard 
 							leagueId={currentLeagueId}
 							leagueName={leagueName}
-							currentUserId={session.user.id} 
-							refreshTrigger={refreshTrigger} 
+							scoringConfig={scoringConfig}
+							currentUserId={session.user.id}
+							refreshTrigger={refreshTrigger}
 							currentUserName={currentUserName}
 						/>
 					</div>

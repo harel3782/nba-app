@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import type { ScoringConfig } from '../lib/scoring';
+import { ScoringRulesEditor } from './ScoringRulesEditor';
 
 interface Props {
 	isOpen: boolean;
@@ -8,7 +10,7 @@ interface Props {
 	currentName: string;
 	currentRegularLockDate: string | null;
 	currentPlayoffLockDate: string | null;
-	currentScoringType: string;
+	currentScoringConfig: ScoringConfig | null;
 	onUpdate: () => void;
 	onDelete?: () => void;
 }
@@ -20,11 +22,13 @@ const toLocalDatetimeInput = (dateStr: string | null) => {
 	return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, currentRegularLockDate, currentPlayoffLockDate, currentScoringType, onUpdate, onDelete }: Props) {
+export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, currentRegularLockDate, currentPlayoffLockDate, currentScoringConfig, onUpdate, onDelete }: Props) {
 	const [name, setName] = useState(currentName);
 	const [regLockDate, setRegLockDate] = useState(toLocalDatetimeInput(currentRegularLockDate));
 	const [playLockDate, setPlayLockDate] = useState(toLocalDatetimeInput(currentPlayoffLockDate));
-	const [scoringType] = useState(currentScoringType || 'standard');
+	const [scoringConfig, setScoringConfig] = useState<ScoringConfig | null>(currentScoringConfig);
+	// Mirrors the DB trigger: frozen once the saved (not edited) lock date has passed.
+	const [rulesFrozen] = useState(() => !!currentRegularLockDate && Date.now() >= new Date(currentRegularLockDate).getTime());
 	const [saving, setSaving] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 
@@ -40,14 +44,14 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 				name,
 				regular_season_lock_at: regLockDate ? new Date(regLockDate).toISOString() : null,
 				playoff_lock_at: playLockDate ? new Date(playLockDate).toISOString() : null,
-				scoring_type: scoringType
+				...(rulesFrozen ? {} : { scoring_config: scoringConfig })
 			})
 			.eq('id', leagueId);
 
 		setSaving(false);
 		if (error) {
 			console.error(error);
-			alert('Error updating league');
+			alert('Error updating league: ' + error.message);
 		} else {
 			onUpdate();
 			onClose();
@@ -89,7 +93,7 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 
 	return (
 		<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-			<div className="bg-[#0f172a] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+			<div className="bg-[#0f172a] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
 				<h2 className="text-2xl font-black uppercase italic mb-6 text-white text-center">League Settings</h2>
 				
 				<div className="space-y-4 mb-8">
@@ -122,6 +126,10 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 								className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none transition-colors text-xs"
 							/>
 						</div>
+					</div>
+
+					<div className="pt-4 border-t border-white/10">
+						<ScoringRulesEditor value={scoringConfig} onChange={setScoringConfig} frozen={rulesFrozen} />
 					</div>
 				</div>
 

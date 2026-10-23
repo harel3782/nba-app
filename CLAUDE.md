@@ -79,13 +79,13 @@ The Python script (`scripts/main.py`) reads these same vars from `.env.local` wh
 
 | Table | Description |
 |-------|-------------|
-| `leagues` | League settings: `id, name, created_by, regular_season_lock_at, playoff_lock_at, scoring_type` |
+| `leagues` | League settings: `id, name, created_by, regular_season_lock_at, playoff_lock_at, scoring_config` (`scoring_type` is unused legacy) |
 | `league_members` | `league_id, user_id` — who belongs to which league |
 | `user_regular_picks` | Regular-season predictions: `user_id, league_id, team_id, predicted_rank, conference` |
 | `user_bracket_picks` | Bracket picks: `user_id, league_id, stage_slug, team_id, predicted_games` |
 | `official_regular_standings` | Ground truth standings synced from ESPN: `team_id, conference, actual_rank, previous_rank, wins, losses, last_updated` |
 | `official_playoff_results` | Admin-entered playoff results: `match_id, winning_team_id, actual_games` |
-| `leaderboard` | View/materialized view: `league_id, user_id, username, total_score, west_score, east_score` |
+| `leaderboard` | View (regular season points, using each league's `scoring_config`): `league_id, user_id, username, total_score, west_score, east_score` |
 
 Supabase RPC called after saving results: `refresh_all_leaderboards()`.
 
@@ -114,11 +114,15 @@ The frontend uses uppercase slugs; the admin panel and `official_playoff_results
 
 ## Scoring system
 
-### Regular season (Golf scoring — lower is better)
-Calculated in the `leaderboard` view. Each prediction incurs a penalty based on how far off the predicted rank is from the actual rank.
+Each league can use the standard rules or custom ones, stored in `leagues.scoring_config` (jsonb; `NULL` = standard). Shape and defaults live in [`src/lib/scoring.ts`](src/lib/scoring.ts) (`STANDARD_SCORING`) and must match the fallback in the `leaderboard` view. A DB check validates the shape, and a trigger rejects changes to `scoring_config` once `regular_season_lock_at` has passed. See `db/migrations/20261023_league_scoring_config.sql`.
 
-### Playoffs (higher is better)
-Calculated client-side in `CombinedLeaderboard.tsx`:
+The standard rules are below. Higher is better for both parts.
+
+### Regular season
+Calculated in the `leaderboard` view. Points per pick by distance from the actual rank: exact 10, off by 1 → 6, off by 2 → 3, off by 3 → 1, further → 0 (`scoring_config.regular` = `[10,6,3,1]`, index = distance).
+
+### Playoffs
+Calculated client-side in `CombinedLeaderboard.tsx` via `getStagePoints()`:
 
 | Round | Correct pick | Correct games bonus |
 |-------|-------------|---------------------|

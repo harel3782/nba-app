@@ -9,6 +9,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { LeagueHeader } from './components/LeagueHeader';
 import { MainContent } from './components/MainContent';
 import type { Session } from '@supabase/supabase-js';
+import type { ScoringConfig } from './lib/scoring';
 
 interface LeagueDetails {
 	id: string;
@@ -16,7 +17,7 @@ interface LeagueDetails {
 	created_by: string;
 	regular_season_lock_at: string | null;
 	playoff_lock_at: string | null;
-	scoring_type: string;
+	scoring_config: ScoringConfig | null;
 }
 
 function App() {
@@ -130,7 +131,7 @@ function App() {
 					currentName={leagueDetails.name} 
 					currentRegularLockDate={leagueDetails.regular_season_lock_at} 
 					currentPlayoffLockDate={leagueDetails.playoff_lock_at} 
-					currentScoringType={leagueDetails.scoring_type} 
+					currentScoringConfig={leagueDetails.scoring_config}
 					onUpdate={() => { fetchLeagueData(leagueDetails.id); setRefreshTrigger(p => p + 1); }} 
 					onDelete={() => { setCurrentLeagueId(null); setLeagueDetails(null); setIsSettingsOpen(false); }} 
 				/>
@@ -185,6 +186,7 @@ function App() {
 							session={session}
 							currentLeagueId={currentLeagueId}
 							leagueName={leagueDetails.name}
+							scoringConfig={leagueDetails.scoring_config}
 							regularLocked={regularLocked}
 							playoffLocked={playoffLocked}
 							regularLockAt={leagueDetails.regular_season_lock_at}
