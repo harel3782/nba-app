@@ -2,13 +2,18 @@ import { BettingBoard } from './BettingBoard';
 import { CombinedLeaderboard } from './CombinedLeaderboard';
 import { FullPlayoffBracket } from './FullPlayoffBracket';
 import { LeaderboardTable } from './LeaderboardTable';
+import { LockCountdown } from './LockCountdown';
 
 interface MainContentProps {
 	activeTab: 'standings' | 'leaderboard' | 'bracket';
 	session: any;
 	currentLeagueId: string;
+	leagueName: string;
 	regularLocked: boolean;
 	playoffLocked: boolean;
+	regularLockAt: string | null;
+	playoffLockAt: string | null;
+	onLockExpire: () => void;
 	triggerSave: number;
 	isUpdatingScores: boolean;
 	handleGlobalSave: () => void;
@@ -21,8 +26,12 @@ export function MainContent({
 	activeTab,
 	session,
 	currentLeagueId,
+	leagueName,
 	regularLocked,
 	playoffLocked,
+	regularLockAt,
+	playoffLockAt,
+	onLockExpire,
 	triggerSave,
 	isUpdatingScores,
 	handleGlobalSave,
@@ -34,6 +43,7 @@ export function MainContent({
 		<div className="w-full min-h-[500px]">
 			{activeTab === 'standings' && (
 				<div className="flex flex-col items-center gap-8 w-full animate-fade-in pb-20">
+					<LockCountdown lockAt={regularLockAt} label="Regular season picks" onExpire={onLockExpire} />
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl mx-auto">
 						<BettingBoard conference="West" userId={session.user.id} leagueId={currentLeagueId} isLocked={regularLocked} triggerSave={triggerSave} />
 						<BettingBoard conference="East" userId={session.user.id} leagueId={currentLeagueId} isLocked={regularLocked} triggerSave={triggerSave} />
@@ -49,8 +59,9 @@ export function MainContent({
 			{activeTab === 'leaderboard' && (
 				<div className="w-full max-w-full mx-auto animate-fade-in pb-20 px-2 lg:px-8">
 					<LeaderboardTable 
-						leagueId={currentLeagueId} 
-						currentUserId={session.user.id} 
+						leagueId={currentLeagueId}
+						leagueName={leagueName}
+						currentUserId={session.user.id}
 						refreshTrigger={refreshTrigger} 
 						currentUserName={currentUserName}
 					/>
@@ -61,14 +72,16 @@ export function MainContent({
 				<div className="w-full animate-fade-in pb-20 space-y-12">
 					<div className="max-w-4xl mx-auto px-4">
 						<CombinedLeaderboard 
-							leagueId={currentLeagueId} 
+							leagueId={currentLeagueId}
+							leagueName={leagueName}
 							currentUserId={session.user.id} 
 							refreshTrigger={refreshTrigger} 
 							currentUserName={currentUserName}
 						/>
 					</div>
+					<LockCountdown lockAt={playoffLockAt} label="Playoff picks" onExpire={onLockExpire} />
 					<div className="w-full overflow-x-auto scrollbar-hide">
-						<FullPlayoffBracket 
+						<FullPlayoffBracket
 							userId={session.user.id} 
 							leagueId={currentLeagueId} 
 							isLocked={playoffLocked} 

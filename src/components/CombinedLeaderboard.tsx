@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { ShareLeaderboardButton } from './ShareLeaderboardButton';
 
 interface Props {
 	leagueId: string;
+	leagueName: string;
 	currentUserId: string;
 	refreshTrigger?: number;
 	currentUserName?: string;
@@ -40,7 +42,7 @@ const ID_MAPPING: Record<string, string> = {
 	'FINALS': 'nba_finals'
 };
 
-export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, currentUserName }: Props) {
+export function CombinedLeaderboard({ leagueId, leagueName, currentUserId, refreshTrigger, currentUserName }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [leaderboard, setLeaderboard] = useState<UserScore[]>([]);
 
@@ -132,8 +134,18 @@ export function CombinedLeaderboard({ leagueId, currentUserId, refreshTrigger, c
 						<div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-ping"></div>
 					</div>
 				)}
-				<div className="bg-gradient-to-r from-[#1D428A] to-[#C8102E] p-4 border-b border-white/10 text-center">
+				<div className="bg-gradient-to-r from-[#1D428A] to-[#C8102E] p-4 border-b border-white/10 flex items-center justify-between gap-3">
 					<h2 className="text-lg font-black italic text-white uppercase tracking-tighter">🏆 Global Playoff Rankings</h2>
+					<ShareLeaderboardButton
+						leagueName={leagueName}
+						title="Combined Standings"
+						columns={['Reg', 'Playoff', 'Total']}
+						rows={leaderboard.map(u => ({
+							name: u.user_id === currentUserId && currentUserName ? currentUserName : u.username,
+							values: [u.regular_points, `+${u.bracket_points}`, u.total_combined],
+							isMe: u.user_id === currentUserId,
+						}))}
+					/>
 				</div>
 				<div className="overflow-x-auto">
 					<table className="w-full text-left border-collapse">

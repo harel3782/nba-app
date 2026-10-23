@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { NBA_TEAMS, type Team } from '../lib/teams';
+import { ShareLeaderboardButton } from './ShareLeaderboardButton';
 
 interface Props {
 	leagueId: string;
+	leagueName: string;
 	currentUserId: string;
 	refreshTrigger?: number;
 	currentUserName?: string;
@@ -25,7 +27,7 @@ interface Standing {
 	losses: number;
 }
 
-export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, currentUserName }: Props) {
+export function LeaderboardTable({ leagueId, leagueName, currentUserId, refreshTrigger, currentUserName }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 	const [standings, setStandings] = useState<Record<string, Standing>>({});
@@ -229,13 +231,27 @@ export function LeaderboardTable({ leagueId, currentUserId, refreshTrigger, curr
 	return (
 		<div className="w-full flex flex-col gap-8 items-center max-w-full">
 			<div className="w-full max-w-2xl bg-black/40 rounded-3xl border border-white/10 p-5 shadow-2xl backdrop-blur-xl relative">
-				{loading && (
-					<div className="absolute top-2 right-4 flex items-center gap-2">
-						<div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
-						<span className="text-[8px] font-black text-orange-500 uppercase italic">Updating...</span>
+				<div className="flex items-center justify-between gap-3 mb-5">
+					<h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-orange-400 italic">Overall Scoreboard</h4>
+					<div className="flex items-center gap-3">
+						{loading && (
+							<div className="flex items-center gap-2">
+								<div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
+								<span className="text-[8px] font-black text-orange-500 uppercase italic">Updating...</span>
+							</div>
+						)}
+						<ShareLeaderboardButton
+							leagueName={leagueName}
+							title="Regular Season"
+							columns={['West', 'East', 'Total']}
+							rows={leaderboard.map(u => ({
+								name: u.user_id === currentUserId && currentUserName ? currentUserName : u.username,
+								values: [u.west_score || 0, u.east_score || 0, u.total_score || 0],
+								isMe: u.user_id === currentUserId,
+							}))}
+						/>
 					</div>
-				)}
-				<h4 className="text-center text-[11px] font-black uppercase tracking-[0.4em] text-orange-400 mb-5 italic">Overall Scoreboard</h4>
+				</div>
 				<div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center border-b border-white/10 pb-3 mb-3 text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-widest">
 					<div className="text-left pl-3">Player</div>
 					<div className="hidden sm:block">West</div>

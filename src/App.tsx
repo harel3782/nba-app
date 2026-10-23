@@ -32,6 +32,7 @@ function App() {
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
 	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
 	const [triggerSave, setTriggerSave] = useState(0);
+	const [, setLockTick] = useState(0);
 
 	useEffect(() => {
 		const handleFocus = () => setRefreshTrigger(prev => prev + 1);
@@ -183,8 +184,12 @@ function App() {
 							activeTab={activeTab}
 							session={session}
 							currentLeagueId={currentLeagueId}
+							leagueName={leagueDetails.name}
 							regularLocked={regularLocked}
 							playoffLocked={playoffLocked}
+							regularLockAt={leagueDetails.regular_season_lock_at}
+							playoffLockAt={leagueDetails.playoff_lock_at}
+							onLockExpire={() => setLockTick(t => t + 1)}
 							triggerSave={triggerSave}
 							isUpdatingScores={isUpdatingScores}
 							handleGlobalSave={handleGlobalSave}
