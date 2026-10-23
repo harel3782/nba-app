@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import type { ScoringConfig } from '../lib/scoring';
 import { ScoringRulesEditor } from './ScoringRulesEditor';
@@ -31,6 +31,18 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 	const [rulesFrozen] = useState(() => !!currentRegularLockDate && Date.now() >= new Date(currentRegularLockDate).getTime());
 	const [saving, setSaving] = useState(false);
 	const [deleting, setDeleting] = useState(false);
+	// A drag that starts inside the dialog and ends on the backdrop must not close it.
+	const pressedOnBackdrop = useRef(false);
+	const busy = saving || deleting;
+
+	useEffect(() => {
+		if (!isOpen) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape' && !busy) onClose();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	}, [isOpen, busy, onClose]);
 
 	if (!isOpen) return null;
 
@@ -92,8 +104,14 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 	}
 
 	return (
-		<div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-			<div className="bg-[#0f172a] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+		<div
+			className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+			onMouseDown={e => { pressedOnBackdrop.current = e.target === e.currentTarget; }}
+			onClick={e => {
+				if (e.target === e.currentTarget && pressedOnBackdrop.current && !busy) onClose();
+			}}
+		>
+			<div role="dialog" aria-modal="true" className="bg-[#0f172a] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
 				<h2 className="text-2xl font-black uppercase italic mb-6 text-white text-center">League Settings</h2>
 				
 				<div className="space-y-4 mb-8">
