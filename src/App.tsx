@@ -33,8 +33,6 @@ function App() {
 	const [showAdminPanel, setShowAdminPanel] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
-	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
-	const [triggerSave, setTriggerSave] = useState(0);
 	const [, setLockTick] = useState(0);
 	const [pendingJoin, setPendingJoin] = useState<string | null>(() => capturePendingJoin());
 
@@ -93,15 +91,6 @@ function App() {
 			setCurrentLeagueId(null);
 		} finally { setLoading(false); }
 	}
-
-	const handleGlobalSave = () => {
-		setIsUpdatingScores(true);
-		setTriggerSave(prev => prev + 1);
-		setTimeout(() => {
-			setRefreshTrigger(prev => prev + 1);
-			setIsUpdatingScores(false);
-		}, 1500);
-	};
 
 	const now = new Date();
 	const regularLocked = leagueDetails?.regular_season_lock_at ? now > new Date(leagueDetails.regular_season_lock_at) : false;
@@ -176,7 +165,6 @@ function App() {
 			/>
 			
 			<main className="w-full max-w-full p-4 md:p-8 flex flex-col items-center">
-				{isUpdatingScores && <div className="fixed top-24 z-[100] bg-yellow-500 text-black px-6 py-3 rounded-full font-black text-sm animate-bounce italic">⏳ Saving & Updating Scores...</div>}
 				
 				{isSuperAdmin && showAdminPanel && <AdminPanel />}
 				
@@ -227,9 +215,6 @@ function App() {
 							regularLockAt={leagueDetails.regular_season_lock_at}
 							playoffLockAt={leagueDetails.playoff_lock_at}
 							onLockExpire={() => setLockTick(t => t + 1)}
-							triggerSave={triggerSave}
-							isUpdatingScores={isUpdatingScores}
-							handleGlobalSave={handleGlobalSave}
 							forceRefresh={() => setRefreshTrigger(p => p + 1)}
 							refreshTrigger={refreshTrigger}
 							currentUserName={displayName}

@@ -6,7 +6,6 @@ interface Props {
 	userId: string;
 	leagueId: string;
 	isLocked: boolean;
-	triggerSave?: number;
 	onSaveSuccess?: () => void;
 }
 
@@ -15,7 +14,7 @@ interface BracketPick {
 	games: number;
 }
 
-export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, onSaveSuccess }: Props) {
+export function FullPlayoffBracket({ userId, leagueId, isLocked, onSaveSuccess }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveSuccess, setSaveSuccess] = useState(false);
@@ -31,11 +30,6 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userId, leagueId]);
-
-	useEffect(() => {
-		if (triggerSave && triggerSave > 0) saveBracket();
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [triggerSave]);
 
 	async function loadActualStandingsForBracket() {
 		// Only show global loading if seeds are empty

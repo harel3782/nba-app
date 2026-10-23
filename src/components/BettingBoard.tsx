@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle, type Ref } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { NBA_TEAMS, type Team } from '../lib/teams';
 import { supabase } from '../lib/supabaseClient';
+
+export interface BettingBoardHandle {
+	save: () => Promise<boolean>;
+}
 
 interface Props {
 	conference: 'West' | 'East';
 	userId: string;
 	leagueId: string | null;
 	isLocked: boolean;
-	onSave?: () => void;
-	triggerSave?: number;
+	ref?: Ref<BettingBoardHandle>;
 }
 
-export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, triggerSave }: Props) {
+export function BettingBoard({ conference, userId, leagueId, isLocked, ref }: Props) {
 	const [teams, setTeams] = useState<Team[]>([]);
 	const [initialLoad, setInitialLoad] = useState(true);
 	const [actualStandings, setActualStandings] = useState<Record<string, number>>({});
@@ -24,18 +27,7 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userId, leagueId]);
 
-	useEffect(() => {
-		if (triggerSave && triggerSave > 0) {
-			if (conference === 'East') {
-				setTimeout(() => {
-					savePredictions();
-				}, 500);
-			} else {
-				savePredictions();
-			}
-		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [triggerSave]);
+	useImperativeHandle(ref, () => ({ save: savePredictions }));
 
 	async function loadUserPredictionsAndStandings() {
 		if (!userId || !leagueId) return;
@@ -85,8 +77,8 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 		setTeams(items);
 	};
 
-	async function savePredictions() {
-		if (isLocked) return;
+	async function savePredictions(): Promise<boolean> {
+		if (isLocked || teams.length === 0) return false;
 		const predictionsToUpsert = teams.map((team, index) => ({
 			user_id: userId,
 			league_id: leagueId,
@@ -96,12 +88,12 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 		}));
 
 		const { error } = await supabase.from('user_regular_picks').upsert(predictionsToUpsert, { onConflict: 'user_id, league_id, team_id' });
-		if (error) { 
+		if (error) {
 			console.error('Error saving:', error);
 			alert(`Could not save your ${conference} picks: ${error.message}`);
-		} else if (onSave) {
-			onSave();
+			return false;
 		}
+		return true;
 	}
 
 	if (initialLoad && teams.length === 0) return <div className="text-white/50 text-center p-10 font-black italic animate-pulse">LOADING TEAMS...</div>;

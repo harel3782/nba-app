@@ -38,6 +38,13 @@ npm run build
 # Preview the production build
 npm run preview
 
+# Unit tests (Vitest: src/**/*.test.ts) and Python tests for the ESPN playoff mapping
+npm test
+python -m unittest scripts/test_main.py
+
+# DB rule tests: paste db/tests/pick_lock_and_membership_test.sql into the Supabase SQL editor
+# (always rolls back; the final error message says PASSED or which checks FAILED)
+
 # Lint
 npm run lint
 
@@ -176,7 +183,7 @@ scripts/
 
 ## Architecture decisions
 
-- **No Redux / Zustand** — state is co-located in components and lifted to `App.tsx` only when needed (`triggerSave`, `refreshTrigger` counters, `leagueDetails`).
+- **No Redux / Zustand** — state is co-located in components and lifted to `App.tsx` only when needed (`refreshTrigger` counter, `leagueDetails`).
 - **Optimistic UX** — bracket picks update in state immediately; only actual DB write is deferred to "Save" button.
 - **Cascade clearing** — when a matchup pick changes, all dependent downstream picks are cleared automatically (see `cascades` map in `FullPlayoffBracket.tsx`).
 - **Dual slug system** — frontend slugs are compact (`W_R1_1`); DB match IDs are human-readable (`w_r1_1vs8`). Always go through `ID_MAPPING` when joining these.
@@ -190,7 +197,7 @@ scripts/
 
 1. **Table name drift** — `db/schema.sql` has `predictions` and `tournament_predictions`; the live DB uses `user_regular_picks` and `user_bracket_picks`. Don't trust the schema file.
 2. **Slug case mismatch** — frontend slugs are UPPERCASE (`W_CF`); DB `match_id` values are lowercase (`w_conf_final`). Always use `ID_MAPPING`.
-3. **`triggerSave` counter pattern** — global save increments an integer; child components watch it with `useEffect`. The East conference save is delayed 500 ms to avoid concurrent upserts.
+3. **Saving standings** — "Save All Predictions" in `MainContent` calls `save()` on each `BettingBoard` through a ref (West, then East) and shows the real result. Don't reintroduce a "save counter" that components watch with `useEffect`: such effects also fire on mount, which once saved an empty bracket whenever the Playoffs tab was opened.
 4. **Bracket save: atomic replace** — `saveBracket()` calls the `save_bracket_picks(p_league_id, p_picks)` RPC, which deletes and re-inserts the caller's picks in one transaction. Don't go back to separate delete/insert calls.
 5. **Standings script window** — `main.py` only runs between `START_HOUR_UTC` (0) and `END_HOUR_UTC` (10) UTC, and only until `END_DATE`. Update these in the workflow if needed for a new season.
 6. **ESPN team abbreviation mapping** — ESPN uses `WSH`, `GS`, `NY`, etc. The `TEAM_MAPPING` dict in `scripts/main.py` normalises them to the IDs used in `teams.ts`.
