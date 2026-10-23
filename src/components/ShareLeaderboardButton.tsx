@@ -6,6 +6,7 @@ export interface ShareRow {
 	name: string;
 	values: (string | number)[];
 	isMe?: boolean;
+	rank: number;
 }
 
 interface Props {
@@ -39,9 +40,9 @@ function ShareCard({ leagueName, title, columns, rows }: Props) {
 				{rows.map((row, idx) => (
 					<div
 						key={idx}
-						className={`flex items-center px-4 py-3 border-t border-white/5 ${row.isMe ? 'bg-orange-500/20' : idx === 0 ? 'bg-yellow-400/10' : ''}`}
+						className={`flex items-center px-4 py-3 border-t border-white/5 ${row.isMe ? 'bg-orange-500/20' : row.rank === 1 ? 'bg-yellow-400/10' : ''}`}
 					>
-						<span className="w-10 text-lg font-black text-gray-400">{MEDALS[idx] ?? `${idx + 1}.`}</span>
+						<span className="w-10 text-lg font-black text-gray-400">{MEDALS[row.rank - 1] ?? `${row.rank}.`}</span>
 						<span className="flex-1 min-w-0 truncate font-bold text-base">{row.name}</span>
 						{row.values.map((v, i) => (
 							<span

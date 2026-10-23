@@ -10,6 +10,8 @@ import { LeagueHeader } from './components/LeagueHeader';
 import { MainContent } from './components/MainContent';
 import type { Session } from '@supabase/supabase-js';
 import type { ScoringConfig } from './lib/scoring';
+import { capturePendingJoin, clearPendingJoin } from './lib/invite';
+import { JoinLeaguePrompt } from './components/JoinLeaguePrompt';
 
 interface LeagueDetails {
 	id: string;
@@ -34,6 +36,7 @@ function App() {
 	const [isUpdatingScores, setIsUpdatingScores] = useState(false);
 	const [triggerSave, setTriggerSave] = useState(0);
 	const [, setLockTick] = useState(0);
+	const [pendingJoin, setPendingJoin] = useState<string | null>(() => capturePendingJoin());
 
 	useEffect(() => {
 		const handleFocus = () => setRefreshTrigger(prev => prev + 1);
@@ -104,7 +107,18 @@ function App() {
 	const regularLocked = leagueDetails?.regular_season_lock_at ? now > new Date(leagueDetails.regular_season_lock_at) : false;
 	const playoffLocked = leagueDetails?.playoff_lock_at ? now > new Date(leagueDetails.playoff_lock_at) : false;
 
-	if (!session) return <Auth />;
+	if (!session) {
+		return (
+			<>
+				{pendingJoin && (
+					<div className="fixed top-0 inset-x-0 z-[100] bg-orange-600 text-white text-center text-sm font-bold px-4 py-2.5 shadow-lg">
+						🏀 You've been invited to a league. Log in or sign up to join.
+					</div>
+				)}
+				<Auth />
+			</>
+		);
+	}
 	if (loading && !leagueDetails) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-4xl animate-spin">🏀</div>;
 
 	const isSuperAdmin = session.user.email === import.meta.env.VITE_SUPER_ADMIN_EMAIL;
@@ -137,7 +151,22 @@ function App() {
 				/>
 			)}
 			
-			<Header 
+			{pendingJoin && (
+				<JoinLeaguePrompt
+					leagueId={pendingJoin}
+					userId={session.user.id}
+					onJoined={(id) => {
+						setCurrentLeagueId(id);
+						setRefreshTrigger(p => p + 1);
+					}}
+					onClose={() => {
+						clearPendingJoin();
+						setPendingJoin(null);
+					}}
+				/>
+			)}
+
+			<Header
 				displayName={displayName} 
 				isSuperAdmin={isSuperAdmin} 
 				showAdminPanel={showAdminPanel} 

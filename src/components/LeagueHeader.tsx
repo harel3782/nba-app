@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScoringRulesModal } from './ScoringRulesModal';
+import { inviteUrl, shareInvite } from '../lib/invite';
 
 interface LeagueHeaderProps {
 	leagueDetails: any;
@@ -11,6 +12,20 @@ interface LeagueHeaderProps {
 export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, setIsSettingsOpen }: LeagueHeaderProps) {
 	const [copySuccess, setCopySuccess] = useState(false);
 	const [isRulesOpen, setIsRulesOpen] = useState(false);
+	const [inviteStatus, setInviteStatus] = useState<'idle' | 'copied'>('idle');
+
+	const invite = async () => {
+		try {
+			const result = await shareInvite(currentLeagueId, leagueDetails.name);
+			if (result === 'copied') {
+				setInviteStatus('copied');
+				setTimeout(() => setInviteStatus('idle'), 2000);
+			}
+		} catch (err) {
+			console.error('Invite failed:', err);
+			alert(`Could not share the invite. Send this link instead:\n${inviteUrl(currentLeagueId)}`);
+		}
+	};
 
 	const copyToClipboard = () => {
 		navigator.clipboard.writeText(currentLeagueId);
@@ -58,6 +73,12 @@ export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, se
 						<span className="truncate max-w-[150px] sm:max-w-none">ID: {currentLeagueId}</span>
 						{copySuccess ? <span className="text-green-400 font-bold whitespace-nowrap">✓ Copied</span> : <span>📋</span>}
 					</div>
+					<button
+						onClick={invite}
+						className="flex-shrink-0 bg-orange-600 hover:bg-orange-500 px-3 py-1 rounded-md text-xs font-black uppercase tracking-wider text-white transition-all active:scale-95"
+					>
+						{inviteStatus === 'copied' ? '✓ Link copied' : '🔗 Invite'}
+					</button>
 				</div>
 			</div>
 			<div className="flex flex-col items-end gap-3">

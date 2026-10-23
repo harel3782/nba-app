@@ -81,6 +81,9 @@ export function ScoringRulesModal({ config, regularLockAt, onClose }: Props) {
 				</section>
 
 				<p className="text-[11px] text-gray-400 mb-1">Total score = regular season points + playoff points.</p>
+				<p className="text-[11px] text-gray-400 mb-1">
+					Ties are broken by most exact regular-season picks (🎯), then most playoff points. Players still tied share the place.
+				</p>
 				<p className="text-[11px] text-gray-500">
 					{frozen
 						? '🔒 These rules are locked for the season.'

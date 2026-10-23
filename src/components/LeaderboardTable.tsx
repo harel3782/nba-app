@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { NBA_TEAMS, type Team } from '../lib/teams';
 import { ShareLeaderboardButton } from './ShareLeaderboardButton';
+import { countExactPicks, rankEntries } from '../lib/ranking';
 
 interface Props {
 	leagueId: string;
@@ -17,6 +18,8 @@ interface LeaderboardEntry {
 	total_score: number;
 	west_score: number;
 	east_score: number;
+	exact_picks: number;
+	rank: number;
 }
 
 interface Standing {
@@ -70,7 +73,13 @@ export function LeaderboardTable({ leagueId, leagueName, currentUserId, refreshT
 			pMap[p.team_id][p.user_id] = p.predicted_rank;
 		});
 
-		setLeaderboard(lbData || []);
+		const exact = countExactPicks(predsData ?? [], Object.fromEntries(Object.values(sMap).map(s => [s.team_id, s.actual_rank])));
+		const ranked = rankEntries(
+			(lbData ?? []).map(u => ({ ...u, exact_picks: exact[u.user_id] ?? 0 })),
+			(a, b) => b.total_score - a.total_score || b.exact_picks - a.exact_picks
+		);
+
+		setLeaderboard(ranked);
 		setStandings(sMap);
 		setPredictionsMap(pMap);
 		setLoading(false);
@@ -248,6 +257,7 @@ export function LeaderboardTable({ leagueId, leagueName, currentUserId, refreshT
 								name: u.user_id === currentUserId && currentUserName ? currentUserName : u.username,
 								values: [u.west_score || 0, u.east_score || 0, u.total_score || 0],
 								isMe: u.user_id === currentUserId,
+								rank: u.rank,
 							}))}
 						/>
 					</div>
@@ -263,15 +273,21 @@ export function LeaderboardTable({ leagueId, leagueName, currentUserId, refreshT
 					{leaderboard.length === 0 ? (
 						<div className="col-span-5 text-center py-6 text-gray-500 text-xs uppercase tracking-widest font-bold">Waiting for predictions...</div>
 					) : (
-						leaderboard.map((user, idx) => {
+						leaderboard.map((user) => {
 							const diff = user.total_score - leaderScore;
+							const tiedOnTotal = leaderboard.some(o => o.user_id !== user.user_id && o.total_score === user.total_score);
 							return (
 								<div key={user.user_id} className={`grid grid-cols-3 sm:grid-cols-5 gap-2 text-center py-2.5 rounded-xl transition-all ${user.user_id === currentUserId ? 'bg-orange-500/15 border border-orange-500/30 shadow-lg' : 'hover:bg-white/5 border border-transparent'}`}>
 									<div className="text-left pl-2 sm:pl-3 flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-										<span className="text-[10px] sm:text-[11px] font-black text-gray-600 flex-shrink-0">{idx + 1}.</span>
+										<span className="text-[10px] sm:text-[11px] font-black text-gray-600 flex-shrink-0">{user.rank}.</span>
 										<span className="font-bold text-gray-100 text-xs truncate">
 											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
 										</span>
+										{tiedOnTotal && (
+											<span title="Exact picks (tiebreaker)" className="flex-shrink-0 text-[9px] font-black text-yellow-400/90 bg-yellow-500/10 border border-yellow-500/20 rounded px-1">
+												🎯{user.exact_picks}
+											</span>
+										)}
 									</div>
 									<div className="hidden sm:block text-blue-400/90 font-bold text-xs">{user.west_score || 0}</div>
 									<div className="hidden sm:block text-blue-400/90 font-bold text-xs">{user.east_score || 0}</div>

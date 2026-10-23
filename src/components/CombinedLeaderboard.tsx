@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { ShareLeaderboardButton } from './ShareLeaderboardButton';
 import { getStagePoints, type ScoringConfig } from '../lib/scoring';
+import { countExactPicks, rankEntries } from '../lib/ranking';
 
 interface Props {
 	leagueId: string;
@@ -18,6 +19,8 @@ interface UserScore {
 	regular_points: number;
 	bracket_points: number;
 	total_combined: number;
+	exact_picks: number;
+	rank: number;
 }
 
 const ID_MAPPING: Record<string, string> = {
@@ -72,12 +75,22 @@ export function CombinedLeaderboard({ leagueId, leagueName, scoringConfig, curre
 			.select('user_id, stage_slug, team_id, predicted_games')
 			.eq('league_id', leagueId);
 
+		const { data: regularPicks } = await supabase
+			.from('user_regular_picks')
+			.select('user_id, team_id, predicted_rank')
+			.eq('league_id', leagueId);
+
+		const { data: standings } = await supabase
+			.from('official_regular_standings')
+			.select('team_id, actual_rank');
+
 		if (!regData || !actuals || !predicts) {
 			setLoading(false);
 			return;
 		}
 
-		const scores: Record<string, UserScore> = {};
+		const exact = countExactPicks(regularPicks ?? [], Object.fromEntries((standings ?? []).map(s => [s.team_id, s.actual_rank])));
+		const scores: Record<string, Omit<UserScore, 'rank'>> = {};
 
 		regData.forEach(u => {
 			scores[u.user_id] = {
@@ -85,7 +98,8 @@ export function CombinedLeaderboard({ leagueId, leagueName, scoringConfig, curre
 				username: u.username || 'User',
 				regular_points: u.total_score || 0,
 				bracket_points: 0,
-				total_combined: 0
+				total_combined: 0,
+				exact_picks: exact[u.user_id] ?? 0
 			};
 		});
 
@@ -108,10 +122,10 @@ export function CombinedLeaderboard({ leagueId, leagueName, scoringConfig, curre
 			}
 		});
 
-		const finalData = Object.values(scores).map(u => ({
-			...u,
-			total_combined: u.regular_points + u.bracket_points
-		})).sort((a, b) => b.total_combined - a.total_combined);
+		const finalData = rankEntries(
+			Object.values(scores).map(u => ({ ...u, total_combined: u.regular_points + u.bracket_points })),
+			(a, b) => b.total_combined - a.total_combined || b.exact_picks - a.exact_picks || b.bracket_points - a.bracket_points
+		);
 
 		setLeaderboard(finalData);
 		setLoading(false);
@@ -138,6 +152,7 @@ export function CombinedLeaderboard({ leagueId, leagueName, scoringConfig, curre
 							name: u.user_id === currentUserId && currentUserName ? currentUserName : u.username,
 							values: [u.regular_points, `+${u.bracket_points}`, u.total_combined],
 							isMe: u.user_id === currentUserId,
+							rank: u.rank,
 						}))}
 					/>
 				</div>
@@ -158,11 +173,16 @@ export function CombinedLeaderboard({ leagueId, leagueName, scoringConfig, curre
 									<td colSpan={5} className="p-4 sm:p-10 text-center text-gray-500 text-xs uppercase tracking-widest font-bold">Waiting for predictions...</td>
 								</tr>
 							) : (
-								leaderboard.map((user, idx) => (
+								leaderboard.map((user) => (
 									<tr key={user.user_id} className={`transition-all ${user.user_id === currentUserId ? 'bg-orange-500/10' : 'hover:bg-white/5'}`}>
-										<td className="p-2 sm:p-4 font-black text-gray-500">{idx + 1}.</td>
+										<td className="p-2 sm:p-4 font-black text-gray-500">{user.rank}.</td>
 										<td className="p-2 sm:p-4 font-bold text-white text-sm">
 											{user.user_id === currentUserId && currentUserName ? currentUserName : user.username}
+											{leaderboard.some(o => o.user_id !== user.user_id && o.total_combined === user.total_combined) && (
+												<span title="Exact regular-season picks (tiebreaker)" className="ml-2 text-[9px] font-black text-yellow-400/90 bg-yellow-500/10 border border-yellow-500/20 rounded px-1 align-middle">
+													🎯{user.exact_picks}
+												</span>
+											)}
 										</td>
 										<td className="p-2 sm:p-4 text-center text-blue-300 font-bold text-xs">{user.regular_points}</td>
 										<td className="p-2 sm:p-4 text-center text-green-400 font-black text-xs">+{user.bracket_points}</td>
