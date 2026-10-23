@@ -144,9 +144,142 @@ def update_standings():
 	supabase.table('official_regular_standings').upsert(db_rows).execute()
 	print("✅ Standings updated successfully!")
 
+# --- Playoff results -------------------------------------------------------
+
+ESPN_SCOREBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard'
+
+# ESPN play-in game labels look like "NBA Play-In - East - 7th Place vs 8th Place".
+PLAY_IN_SLOTS = {
+	'7th Place vs 8th Place': 'pi_7v8',
+	'9th Place vs 10th Place': 'pi_9v10',
+	'8th Seed Game': 'pi_8th',
+}
+R1_SLOT_BY_TOP_SEED = {1: 'r1_1vs8', 2: 'r1_2vs7', 3: 'r1_3vs6', 4: 'r1_4vs5'}
+SEMI_1_FEEDERS = {'r1_1vs8', 'r1_4vs5'}
+
+def normalize_team(abbreviation):
+	return TEAM_MAPPING.get(abbreviation, abbreviation)
+
+def fetch_playoff_seeds(season=None):
+	params = {'season': season} if season else {}
+	data = requests.get(ESPN_API_URL, params=params, timeout=30).json()
+	seeds = {}
+	for conference in data.get('children', []):
+		for entry in conference.get('standings', {}).get('entries', []):
+			for stat in entry.get('stats', []):
+				if stat.get('name') == 'playoffSeed':
+					seeds[normalize_team(entry['team']['abbreviation'])] = int(stat.get('value', 0))
+	return seeds
+
+def fetch_postseason_events(year, months):
+	events = []
+	for month in months:
+		response = requests.get(ESPN_SCOREBOARD_URL, params={'dates': f'{year}{month:02d}', 'limit': 1000}, timeout=30)
+		response.raise_for_status()
+		events += response.json().get('events', [])
+	# Regular-season games also carry a (head-to-head) "series", so filter by season type: 3 = playoffs, 5 = play-in.
+	return [e for e in events if e.get('season', {}).get('type') in (3, 5)]
+
+def compute_playoff_results(events, seeds):
+	"""Returns {match_id: (winning_team_id, games)} for every finished play-in game and completed series."""
+	results = {}
+	r1_slot_by_team = {}
+	completed_series = []
+
+	for event in events:
+		comp = event['competitions'][0]
+		note = (comp.get('notes') or [{}])[0].get('headline', '')
+		team_by_espn_id = {c['team']['id']: normalize_team(c['team']['abbreviation']) for c in comp['competitors']}
+
+		if event['season']['type'] == 5:
+			parts = note.split(' - ')
+			slot = PLAY_IN_SLOTS.get(parts[2]) if len(parts) == 3 else None
+			winner = next((team_by_espn_id[c['team']['id']] for c in comp['competitors'] if c.get('winner')), None)
+			if slot and parts[1] in ('East', 'West') and comp['status']['type'].get('completed') and winner:
+				results[f"{parts[1][0].lower()}_{slot}"] = (winner, 1)
+			continue
+
+		label = note.split(' - Game')[0]
+		if label.endswith('1st Round'):
+			teams = list(team_by_espn_id.values())
+			top_seed = min(seeds.get(t, 99) for t in teams)
+			if top_seed in R1_SLOT_BY_TOP_SEED:
+				for t in teams:
+					r1_slot_by_team[t] = R1_SLOT_BY_TOP_SEED[top_seed]
+			else:
+				print(f"⚠️ Could not seed first-round series {teams} (seeds {[seeds.get(t) for t in teams]})")
+
+		series = comp.get('series') or {}
+		if series.get('type') == 'playoff' and series.get('completed'):
+			wins = {team_by_espn_id[c['id']]: c['wins'] for c in series['competitors']}
+			completed_series.append((label, wins))
+
+	for label, wins in completed_series:
+		winner = max(wins, key=wins.get)
+		games = sum(wins.values())
+		if label == 'NBA Finals':
+			results['nba_finals'] = (winner, games)
+			continue
+		conf, _, round_name = label.partition(' ')
+		if conf not in ('East', 'West'):
+			print(f"⚠️ Unrecognised series label: {label!r}")
+			continue
+		prefix = f"{conf[0].lower()}_"
+		if round_name == '1st Round':
+			slot = r1_slot_by_team.get(winner)
+		elif round_name == 'Semifinals':
+			feeders = {r1_slot_by_team.get(t) for t in wins}
+			slot = 'semi_1' if feeders & SEMI_1_FEEDERS else 'semi_2' if None not in feeders else None
+		elif round_name == 'Finals':
+			slot = 'conf_final'
+		else:
+			slot = None
+		if slot:
+			results[prefix + slot] = (winner, games)
+		else:
+			print(f"⚠️ Could not place series {label!r} {wins}")
+
+	return results
+
+def update_playoff_results(today=None):
+	today = today or date.today()
+	if not 4 <= today.month <= 6:
+		print("Not playoff season (April–June). Skipping playoff results.")
+		return
+
+	print("Fetching playoff results from ESPN...")
+	computed = compute_playoff_results(fetch_postseason_events(today.year, range(4, today.month + 1)), fetch_playoff_seeds())
+	existing = {r['match_id']: r for r in supabase.table('official_playoff_results').select('*').execute().data}
+
+	new_rows = []
+	for match_id, (winner, games) in sorted(computed.items()):
+		current = existing.get(match_id)
+		if current is None:
+			new_rows.append({'match_id': match_id, 'winning_team_id': winner, 'actual_games': games})
+		elif current['winning_team_id'] != winner or current.get('actual_games') != games:
+			# Results entered in the admin panel always win; just flag the difference.
+			print(f"⚠️ {match_id}: DB has {current['winning_team_id']} in {current.get('actual_games')}, ESPN says {winner} in {games}. Keeping DB value.")
+
+	if new_rows:
+		supabase.table('official_playoff_results').upsert(new_rows, on_conflict='match_id').execute()
+		print(f"✅ Added {len(new_rows)} playoff result(s): {', '.join(r['match_id'] for r in new_rows)}")
+	else:
+		print("No new playoff results.")
+
+def preview_playoff_results(year):
+	"""Prints what would be written for a past postseason, without touching the database."""
+	results = compute_playoff_results(fetch_postseason_events(year, range(4, 7)), fetch_playoff_seeds(season=year))
+	for match_id, (winner, games) in sorted(results.items()):
+		print(f"{match_id:<14} {winner:<4} {games}")
+	print(f"{len(results)} results")
+
 if __name__ == "__main__":
-	if os.environ.get("GITHUB_ACTIONS") == "true":
+	if len(sys.argv) == 3 and sys.argv[1] == '--preview-playoffs':
+		preview_playoff_results(int(sys.argv[2]))
+	elif os.environ.get("GITHUB_ACTIONS") == "true":
 		if should_run():
 			update_standings()
+			update_playoff_results()
 	else:
 		update_standings()
+		update_playoff_results()

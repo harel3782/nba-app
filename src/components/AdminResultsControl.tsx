@@ -96,6 +96,7 @@ export function AdminResultsControl() {
 			}
 		} catch (err) {
 			console.error("Save failed:", err);
+			alert("❌ Results were NOT saved: " + ((err as { message?: string })?.message ?? String(err)));
 		} finally {
 			setLoading(false);
 		}

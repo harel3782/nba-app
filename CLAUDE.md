@@ -53,8 +53,11 @@ npx cap open android
 # Generate adaptive icons + splash screen
 npx @capacitor/assets generate --android
 
-# Run the standings sync script locally (reads .env.local)
+# Run the standings + playoff results sync locally (reads .env.local)
 python scripts/main.py
+
+# Dry run: print the playoff results ESPN gives for a past postseason (no DB writes)
+python scripts/main.py --preview-playoffs 2026
 ```
 
 ---
@@ -191,5 +194,6 @@ scripts/
 4. **Bracket save: atomic replace** — `saveBracket()` calls the `save_bracket_picks(p_league_id, p_picks)` RPC, which deletes and re-inserts the caller's picks in one transaction. Don't go back to separate delete/insert calls.
 5. **Standings script window** — `main.py` only runs between `START_HOUR_UTC` (0) and `END_HOUR_UTC` (10) UTC, and only until `END_DATE`. Update these in the workflow if needed for a new season.
 6. **ESPN team abbreviation mapping** — ESPN uses `WSH`, `GS`, `NY`, etc. The `TEAM_MAPPING` dict in `scripts/main.py` normalises them to the IDs used in `teams.ts`.
-7. **Locks are enforced in the DB** — the `enforce_pick_lock` trigger rejects pick writes after `regular_season_lock_at` (regular picks) / `playoff_lock_at` (bracket picks) for API users. Deletes after the lock are allowed only when cascaded from another trigger or by the league creator. Also note `wipe_bracket_on_rank_change`: any update to a user's `predicted_rank` deletes their bracket for that league.
+7. **Locks are enforced in the DB** — the `enforce_pick_lock` trigger rejects pick writes after `regular_season_lock_at` (regular picks) / `playoff_lock_at` (bracket picks) for API users. Deletes after the lock are allowed only when cascaded from another trigger (e.g. league deletion) or by the league creator.
 8. **`leaderboard` view is members-only** — it runs with owner rights (it reads `auth.users`), so it filters to leagues the caller (`auth.uid()`) belongs to; `anon` has no access.
+9. **Playoff results auto-fill from ESPN** — during April–June, `update_playoff_results()` in `scripts/main.py` reads ESPN's monthly scoreboards (season type 5 = play-in, 3 = playoffs; regular-season games also carry a head-to-head `series`, so always filter by type) and inserts finished play-in games and completed series into `official_playoff_results`. It only fills missing `match_id`s; rows entered in the admin panel are never overwritten, mismatches are just logged.
