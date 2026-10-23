@@ -53,6 +53,7 @@ export function CombinedLeaderboard({ leagueId, leagueName, scoringConfig, curre
 
 	useEffect(() => {
 		if (leagueId) fetchAndCalculate();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [leagueId, refreshTrigger, scoringConfig]);
 
 	async function fetchAndCalculate() {

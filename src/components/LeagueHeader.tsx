@@ -2,9 +2,15 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { ScoringRulesModal } from './ScoringRulesModal';
 import { inviteUrl, shareInvite } from '../lib/invite';
+import type { ScoringConfig } from '../lib/scoring';
 
 interface LeagueHeaderProps {
-	leagueDetails: any;
+	leagueDetails: {
+		name: string;
+		regular_season_lock_at: string | null;
+		playoff_lock_at: string | null;
+		scoring_config: ScoringConfig | null;
+	};
 	currentLeagueId: string;
 	currentUserId: string;
 	isLeagueAdmin: boolean;

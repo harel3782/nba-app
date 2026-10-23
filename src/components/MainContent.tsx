@@ -4,11 +4,12 @@ import { CombinedLeaderboard } from './CombinedLeaderboard';
 import { FullPlayoffBracket } from './FullPlayoffBracket';
 import { LeaderboardTable } from './LeaderboardTable';
 import { LockCountdown } from './LockCountdown';
+import type { Session } from '@supabase/supabase-js';
 import type { ScoringConfig } from '../lib/scoring';
 
 interface MainContentProps {
 	activeTab: 'standings' | 'leaderboard' | 'bracket';
-	session: any;
+	session: Session;
 	currentLeagueId: string;
 	leagueName: string;
 	scoringConfig: ScoringConfig | null;

@@ -95,9 +95,9 @@ export function LeagueSettingsModal({ isOpen, onClose, leagueId, currentName, cu
 			}
 
 			if (onDelete) onDelete();
-		} catch (error: any) {
+		} catch (error) {
 			console.error('Error deleting league:', error);
-			alert('Deletion Failed: ' + error.message);
+			alert('Deletion Failed: ' + (error as Error).message);
 		} finally {
 			setDeleting(false);
 		}

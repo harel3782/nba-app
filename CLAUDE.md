@@ -42,6 +42,9 @@ npm run preview
 npm test
 python -m unittest scripts/test_main.py
 
+# CI (.github/workflows/ci.yml) runs lint, npm test, build and the Python tests on every push to main and on PRs,
+# so keep `npm run lint` at zero problems.
+
 # DB rule tests: paste db/tests/pick_lock_and_membership_test.sql into the Supabase SQL editor
 # (always rolls back; the final error message says PASSED or which checks FAILED)
 
@@ -177,6 +180,7 @@ scripts/
 
 .github/workflows/
   nba_scheduler.yml              # Cron every 15 min, window 00:00–10:00 UTC, season 2026-10-01 → 2027-06-30
+  ci.yml                         # Lint + tests + build on push to main / PRs
 ```
 
 ---

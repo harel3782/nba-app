@@ -78,7 +78,7 @@ export function AdminResultsControl() {
 		setLoading(true);
 		try {
 			const rowsToUpsert = Object.entries(results)
-				.filter(([_, data]) => data.winner !== "")
+				.filter(([, data]) => data.winner !== "")
 				.map(([matchId, data]) => ({
 					match_id: matchId,
 					winning_team_id: data.winner,

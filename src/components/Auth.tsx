@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { publicBaseUrl } from '../lib/site';
 
 export function Auth() {
 	const [loading, setLoading] = useState(false);
@@ -7,6 +8,7 @@ export function Auth() {
 	const [password, setPassword] = useState('');
 	const [username, setUsername] = useState('');
 	const [isSignUp, setIsSignUp] = useState(false);
+	const [isForgot, setIsForgot] = useState(false);
 	const [errorMsg, setErrorMsg] = useState('');
 	const [infoMsg, setInfoMsg] = useState(''); // Green message for the user
 
@@ -17,7 +19,12 @@ export function Auth() {
 		setInfoMsg('');
 
 		try {
-			if (isSignUp) {
+			if (isForgot) {
+				const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: publicBaseUrl() });
+				if (error) throw error;
+				setInfoMsg(`If an account exists for ${email}, we've sent a password reset link. Check your inbox and spam folder.`);
+				setIsForgot(false);
+			} else if (isSignUp) {
 				// --- Sign Up ---
 				const { data, error } = await supabase.auth.signUp({
 					email,
@@ -27,7 +34,7 @@ export function Auth() {
 							display_name: username,
 						},
 						// Redirects back to the app in Vercel after clicking the email
-						emailRedirectTo: window.location.origin,
+						emailRedirectTo: publicBaseUrl(),
 					},
 				});
 
@@ -48,8 +55,8 @@ export function Auth() {
 				});
 				if (error) throw error;
 			}
-		} catch (error: any) {
-			setErrorMsg(error.message);
+		} catch (error) {
+			setErrorMsg((error as Error).message);
 		} finally {
 			setLoading(false);
 		}
@@ -63,16 +70,18 @@ export function Auth() {
 					<button
 						onClick={() => {
 							setIsSignUp(false);
+							setIsForgot(false);
 							setErrorMsg('');
 							setInfoMsg('');
 						}}
-						className={`flex-1 py-4 font-bold transition-colors ${!isSignUp ? 'text-orange-500 border-b-2 border-orange-500 bg-gray-700/50' : 'text-gray-400 hover:text-white'}`}
+						className={`flex-1 py-4 font-bold transition-colors ${!isSignUp ?'text-orange-500 border-b-2 border-orange-500 bg-gray-700/50' : 'text-gray-400 hover:text-white'}`}
 					>
 						Log In
 					</button>
 					<button
 						onClick={() => {
 							setIsSignUp(true);
+							setIsForgot(false);
 							setErrorMsg('');
 							setInfoMsg('');
 						}}
@@ -84,8 +93,11 @@ export function Auth() {
 
 				<div className="p-8">
 					<h2 className="text-2xl font-bold mb-6 text-center">
-						{isSignUp ? 'Create Account' : 'Welcome Back'}
+						{isForgot ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
 					</h2>
+					{isForgot && (
+						<p className="text-sm text-gray-400 text-center -mt-3 mb-6">Enter your email and we'll send you a link to set a new password.</p>
+					)}
 
 					{/* Error message */}
 					{errorMsg && (
@@ -133,20 +145,35 @@ export function Auth() {
 							/>
 						</div>
 
-						<div>
-							<label className="block text-xs uppercase text-gray-400 mb-1 font-bold">
-								Password
-							</label>
-							<input
-								className="w-full bg-gray-700 border border-gray-600 rounded p-3 text-white focus:border-orange-500 outline-none transition-all placeholder-gray-500"
-								type="password"
-								placeholder="••••••••"
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
-								required
-								minLength={6}
-							/>
-						</div>
+						{!isForgot && (
+							<div>
+								<div className="flex items-center justify-between mb-1">
+									<label className="block text-xs uppercase text-gray-400 font-bold">Password</label>
+									{!isSignUp && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsForgot(true);
+												setErrorMsg('');
+												setInfoMsg('');
+											}}
+											className="text-xs text-orange-400 hover:text-orange-300 font-bold"
+										>
+											Forgot password?
+										</button>
+									)}
+								</div>
+								<input
+									className="w-full bg-gray-700 border border-gray-600 rounded p-3 text-white focus:border-orange-500 outline-none transition-all placeholder-gray-500"
+									type="password"
+									placeholder="••••••••"
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									required
+									minLength={6}
+								/>
+							</div>
+						)}
 
 						<button
 							disabled={loading}
@@ -158,8 +185,20 @@ export function Auth() {
 								}
 							`}
 						>
-							{loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Log In'}
+							{loading ? 'Processing...' : isForgot ? 'Send Reset Link' : isSignUp ? 'Sign Up' : 'Log In'}
 						</button>
+						{isForgot && (
+							<button
+								type="button"
+								onClick={() => {
+									setIsForgot(false);
+									setErrorMsg('');
+								}}
+								className="text-sm text-gray-400 hover:text-white font-bold"
+							>
+								← Back to log in
+							</button>
+						)}
 					</form>
 
 					<div className="mt-6 pt-6 border-t border-gray-700 text-center">
@@ -169,6 +208,7 @@ export function Auth() {
 								className="text-orange-400 hover:text-orange-300 cursor-pointer ml-2 font-bold underline decoration-transparent hover:decoration-orange-300 transition-all"
 								onClick={() => {
 									setIsSignUp(!isSignUp);
+									setIsForgot(false);
 									setErrorMsg('');
 									setInfoMsg('');
 								}}

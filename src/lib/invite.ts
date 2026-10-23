@@ -1,13 +1,11 @@
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
+import { publicBaseUrl } from './site';
 
 const PENDING_JOIN_KEY = 'nba_pendingJoin';
-const PUBLIC_SITE_URL = 'https://nba-app-five.vercel.app';
 
 export function inviteUrl(leagueId: string) {
-	// Inside the Android app window.location is a local WebView origin, so links must point at the website.
-	const base = Capacitor.isNativePlatform() ? PUBLIC_SITE_URL : window.location.origin;
-	return `${base}/?join=${encodeURIComponent(leagueId)}`;
+	return `${publicBaseUrl()}/?join=${encodeURIComponent(leagueId)}`;
 }
 
 // Moves ?join=<id> from the URL into storage so it survives login, sign-up and email confirmation.

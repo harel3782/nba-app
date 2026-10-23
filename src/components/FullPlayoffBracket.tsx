@@ -66,7 +66,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSaveSuccess }
 		if (isLocked) return;
 		setIsSaving(true);
 		const toSave = Object.entries(picks)
-			.filter(([_, p]) => p.team)
+			.filter(([, p]) => p.team)
 			.map(([slug, p]) => ({
 				stage_slug: slug,
 				team_id: p.team!.id,
@@ -129,15 +129,25 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, onSaveSuccess }
 		setPicks(prev => ({ ...prev, [key]: { ...prev[key], games } }));
 	};
 
-	const MatchupBox = ({ teamA, teamB, label, seedA, seedB, isFinals = false, stageKey }: any) => {
+	interface MatchupBoxProps {
+		teamA?: Team | null;
+		teamB?: Team | null;
+		label: string;
+		seedA?: string;
+		seedB?: string;
+		isFinals?: boolean;
+		stageKey: string;
+	}
+
+	const MatchupBox = ({ teamA, teamB, label, seedA, seedB, isFinals = false, stageKey }: MatchupBoxProps) => {
 		const current = picks[stageKey] || { team: null, games: stageKey.includes('_PI_') ? 1 : 4 };
-		const isSelected = (t: any) => current.team && t && current.team.id === t.id;
+		const isSelected = (t?: Team | null) => current.team && t && current.team.id === t.id;
 		return (
 			<div className={`flex flex-col bg-[#0f172a] rounded-lg w-20 sm:w-24 md:w-28 lg:w-32 overflow-hidden shadow-xl border ${isFinals ? 'border-yellow-500/50' : 'border-white/10'}`}>
 				<div className="text-[8px] sm:text-[10px] font-black uppercase py-0.5 sm:py-1 bg-black/40 text-gray-400 text-center">{label}</div>
 				<div className="p-0.5 sm:p-1 space-y-0.5 sm:space-y-1">
 					{[ {t: teamA, s: seedA}, {t: teamB, s: seedB} ].map((item, i) => (
-						<button key={i} disabled={!item.t || isLocked} onClick={() => makePick(stageKey, item.t)}
+						<button key={i} disabled={!item.t || isLocked} onClick={() => makePick(stageKey, item.t ?? null)}
 							className={`w-full flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded transition-colors text-[8px] sm:text-[10px] font-bold ${isSelected(item.t) ? 'bg-orange-500/20 border border-orange-500' : 'bg-white/5 border border-transparent'}`}>
 							<span className="text-gray-500 w-3 text-right text-[9px]">{item.s}</span>
 							{item.t ? (<><img src={item.t.logo} alt={item.t.id} className="w-4 h-4 object-contain" /> <span className={isSelected(item.t) ? 'text-orange-400' : 'text-gray-300'}>{item.t.id}</span></>) : <span className="text-gray-600 italic text-[9px]">TBD</span>}

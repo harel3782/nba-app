@@ -28,9 +28,9 @@ export function ProfileModal({ isOpen, onClose, currentName, onUpdate }: Props) 
 
 			onUpdate(username.trim());
 			onClose();
-		} catch (error: any) {
+		} catch (error) {
 			console.error('Error updating profile:', error);
-			alert('Failed to update profile: ' + error.message);
+			alert('Failed to update profile: ' + (error as Error).message);
 		} finally {
 			setLoading(false);
 		}

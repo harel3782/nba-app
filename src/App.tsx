@@ -12,6 +12,7 @@ import type { Session } from '@supabase/supabase-js';
 import type { ScoringConfig } from './lib/scoring';
 import { capturePendingJoin, clearPendingJoin } from './lib/invite';
 import { JoinLeaguePrompt } from './components/JoinLeaguePrompt';
+import { SetNewPasswordModal } from './components/SetNewPasswordModal';
 
 interface LeagueDetails {
 	id: string;
@@ -22,10 +23,16 @@ interface LeagueDetails {
 	scoring_config: ScoringConfig | null;
 }
 
+type Tab = 'standings' | 'leaderboard' | 'bracket';
+const TABS: Tab[] = ['standings', 'leaderboard', 'bracket'];
+
 function App() {
 	const [session, setSession] = useState<Session | null>(null);
 	const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(() => localStorage.getItem('nba_currentLeagueId') || null);
-	const [activeTab, setActiveTab] = useState<'standings' | 'leaderboard' | 'bracket'>(() => (localStorage.getItem('nba_activeTab') as any) || 'standings');
+	const [activeTab, setActiveTab] = useState<Tab>(() => {
+		const saved = localStorage.getItem('nba_activeTab');
+		return TABS.find(t => t === saved) ?? 'standings';
+	});
 	const [leagueDetails, setLeagueDetails] = useState<LeagueDetails | null>(null);
 	const [displayName, setDisplayName] = useState('');
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -35,6 +42,7 @@ function App() {
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
 	const [, setLockTick] = useState(0);
 	const [pendingJoin, setPendingJoin] = useState<string | null>(() => capturePendingJoin());
+	const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
 	useEffect(() => {
 		const handleFocus = () => setRefreshTrigger(prev => prev + 1);
@@ -54,7 +62,8 @@ function App() {
 			setSession(session);
 			if (session) updateLocalName(session);
 		});
-		const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+		const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+			if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true);
 			setSession(session);
 			if (session) updateLocalName(session);
 			else {
@@ -140,7 +149,9 @@ function App() {
 				/>
 			)}
 			
-			{pendingJoin && (
+			{isPasswordRecovery && <SetNewPasswordModal onDone={() => setIsPasswordRecovery(false)} />}
+
+			{pendingJoin && !isPasswordRecovery && (
 				<JoinLeaguePrompt
 					leagueId={pendingJoin}
 					userId={session.user.id}
@@ -193,10 +204,10 @@ function App() {
 						/>
 						
 						<nav className="flex flex-wrap gap-2 mb-10 bg-black/40 p-1.5 rounded-2xl border border-white/5 w-fit mx-auto shadow-2xl backdrop-blur-xl justify-center">
-							{['standings', 'leaderboard', 'bracket'].map((t) => (
+							{TABS.map((t) => (
 								<button
 									key={t}
-									onClick={() => setActiveTab(t as any)}
+									onClick={() => setActiveTab(t)}
 									className={`px-5 sm:px-10 py-3 rounded-xl text-xs font-black uppercase transition-all ${activeTab === t ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
 								>
 									{t === 'bracket' ? 'Playoffs' : t}

@@ -1,20 +1,35 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
+interface StandingRow {
+	team_id: string;
+	wins: number;
+	losses: number;
+	actual_rank: number;
+	conference: string;
+}
+
+const loadStandings = () =>
+	supabase
+		.from('official_regular_standings')
+		.select('team_id, wins, losses, actual_rank, conference')
+		.order('conference', { ascending: false })
+		.order('actual_rank', { ascending: true })
+		.returns<StandingRow[]>();
+
 export function AdminStandingsMonitor() {
-	const [standings, setStandings] = useState<any[]>([]);
+	const [standings, setStandings] = useState<StandingRow[]>([]);
 
 	const fetchStandings = async () => {
-		// Fetch from the official standings table
-		const { data } = await supabase
-			.from('official_regular_standings')
-			.select('team_id, wins, losses, actual_rank, conference')
-			.order('conference', { ascending: false })
-			.order('actual_rank', { ascending: true });
+		const { data } = await loadStandings();
 		if (data) setStandings(data);
 	};
 
-	useEffect(() => { fetchStandings(); }, []);
+	useEffect(() => {
+		loadStandings().then(({ data }) => {
+			if (data) setStandings(data);
+		});
+	}, []);
 
 	const renderConf = (conf: string) => (
 		<div className="flex-1 bg-black/40 p-4 rounded-xl border border-white/5">
