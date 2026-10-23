@@ -194,8 +194,14 @@ function App() {
 						<LeagueHeader 
 							leagueDetails={leagueDetails} 
 							currentLeagueId={currentLeagueId} 
-							isLeagueAdmin={session.user.id === leagueDetails.created_by} 
-							setIsSettingsOpen={setIsSettingsOpen} 
+							currentUserId={session.user.id}
+							isLeagueAdmin={session.user.id === leagueDetails.created_by}
+							setIsSettingsOpen={setIsSettingsOpen}
+							onLeft={() => {
+								setCurrentLeagueId(null);
+								setLeagueDetails(null);
+								setRefreshTrigger(p => p + 1);
+							}}
 						/>
 						
 						<nav className="flex flex-wrap gap-2 mb-10 bg-black/40 p-1.5 rounded-2xl border border-white/5 w-fit mx-auto shadow-2xl backdrop-blur-xl justify-center">

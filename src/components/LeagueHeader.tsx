@@ -1,18 +1,45 @@
 import { useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { ScoringRulesModal } from './ScoringRulesModal';
 import { inviteUrl, shareInvite } from '../lib/invite';
 
 interface LeagueHeaderProps {
 	leagueDetails: any;
 	currentLeagueId: string;
+	currentUserId: string;
 	isLeagueAdmin: boolean;
 	setIsSettingsOpen: (open: boolean) => void;
+	onLeft: () => void;
 }
 
-export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, setIsSettingsOpen }: LeagueHeaderProps) {
+export function LeagueHeader({ leagueDetails, currentLeagueId, currentUserId, isLeagueAdmin, setIsSettingsOpen, onLeft }: LeagueHeaderProps) {
 	const [copySuccess, setCopySuccess] = useState(false);
 	const [isRulesOpen, setIsRulesOpen] = useState(false);
 	const [inviteStatus, setInviteStatus] = useState<'idle' | 'copied'>('idle');
+	const [leaving, setLeaving] = useState(false);
+
+	const leaveLeague = async () => {
+		const confirmed = window.confirm(
+			`Leave "${leagueDetails.name}"?\n\nYou'll disappear from this league's leaderboards. Your picks are kept, so if you rejoin with an invite link they come back.`
+		);
+		if (!confirmed) return;
+
+		setLeaving(true);
+		const { data, error } = await supabase
+			.from('league_members')
+			.delete()
+			.eq('league_id', currentLeagueId)
+			.eq('user_id', currentUserId)
+			.select();
+		setLeaving(false);
+
+		if (error || !data?.length) {
+			console.error('Leave failed:', error);
+			alert('Could not leave the league. Please try again.');
+			return;
+		}
+		onLeft();
+	};
 
 	const invite = async () => {
 		try {
@@ -87,9 +114,17 @@ export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, se
 					<button onClick={() => setIsRulesOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2 font-bold">
 						📜 Rules
 					</button>
-					{isLeagueAdmin && (
+					{isLeagueAdmin ? (
 						<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2 font-bold">
 							⚙️ League Settings
+						</button>
+					) : (
+						<button
+							onClick={leaveLeague}
+							disabled={leaving}
+							className="bg-red-900/20 hover:bg-red-900/40 px-4 py-2 rounded-lg text-sm text-red-300 hover:text-red-200 transition-all border border-red-500/30 flex items-center gap-2 font-bold disabled:opacity-50"
+						>
+							{leaving ? 'Leaving...' : '🚪 Leave'}
 						</button>
 					)}
 				</div>

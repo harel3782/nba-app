@@ -46,6 +46,8 @@ export function LeagueManager({ userId, currentLeagueId, onLeagueChange, refresh
 					onLeagueChange(leaguesData[0].id, leaguesData[0].name);
 				}
 			}
+		} else if (membershipData) {
+			setMyLeagues([]);
 		}
 	}
 
