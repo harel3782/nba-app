@@ -91,7 +91,6 @@ export function AdminResultsControl() {
 					.upsert(rowsToUpsert, { onConflict: 'match_id' });
 
 				if (error) throw error;
-				await supabase.rpc('refresh_all_leaderboards');
 				alert("✅ Results saved!");
 				setHasChanges(false);
 			}

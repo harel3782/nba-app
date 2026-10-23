@@ -41,12 +41,9 @@ DELETE FROM user_regular_picks;
 ```
 ⚠️ This is irreversible — only do it if you want everyone to start fresh.
 
-## 5. Refresh the leaderboard
+## 5. Leaderboard
 
-After clearing results, call the RPC to rebuild the view:
-```sql
-SELECT refresh_all_leaderboards();
-```
+Nothing to refresh: `leaderboard` is a plain view, so it reflects cleared results immediately.
 
 ## 6. Team roster changes
 

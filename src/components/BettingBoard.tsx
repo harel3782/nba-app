@@ -97,7 +97,8 @@ export function BettingBoard({ conference, userId, leagueId, isLocked, onSave, t
 
 		const { error } = await supabase.from('user_regular_picks').upsert(predictionsToUpsert, { onConflict: 'user_id, league_id, team_id' });
 		if (error) { 
-			console.error('Error saving:', error); 
+			console.error('Error saving:', error);
+			alert(`Could not save your ${conference} picks: ${error.message}`);
 		} else if (onSave) {
 			onSave();
 		}

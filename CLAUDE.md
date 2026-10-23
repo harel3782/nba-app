@@ -79,7 +79,7 @@ The Python script (`scripts/main.py`) reads these same vars from `.env.local` wh
 
 | Table | Description |
 |-------|-------------|
-| `leagues` | League settings: `id, name, created_by, regular_season_lock_at, playoff_lock_at, scoring_config` (`scoring_type` is unused legacy) |
+| `leagues` | League settings: `id, name, created_by, regular_season_lock_at, playoff_lock_at, scoring_config` |
 | `league_members` | `league_id, user_id` — who belongs to which league |
 | `user_regular_picks` | Regular-season predictions: `user_id, league_id, team_id, predicted_rank, conference` |
 | `user_bracket_picks` | Bracket picks: `user_id, league_id, stage_slug, team_id, predicted_games` |
@@ -87,7 +87,7 @@ The Python script (`scripts/main.py`) reads these same vars from `.env.local` wh
 | `official_playoff_results` | Admin-entered playoff results: `match_id, winning_team_id, actual_games` |
 | `leaderboard` | View (regular season points, using each league's `scoring_config`): `league_id, user_id, username, total_score, west_score, east_score` |
 
-Supabase RPC called after saving results: `refresh_all_leaderboards()`.
+Supabase RPC for bracket saves: `save_bracket_picks(p_league_id, p_picks)`. Leaderboards are views, so nothing needs refreshing after results are saved.
 
 ---
 
@@ -157,7 +157,7 @@ src/
     CombinedLeaderboard.tsx      # Playoff + regular combined rankings
     AdminPanel.tsx               # Super-admin wrapper
     AdminStandingsMonitor.tsx    # Read-only view of official_regular_standings
-    AdminResultsControl.tsx      # Enter playoff results + call refresh_all_leaderboards RPC
+    AdminResultsControl.tsx      # Enter playoff results
     ProfileModal.tsx             # Change display name
     BracketMatch.tsx             # Single matchup box (used in FullPlayoffBracket)
 
@@ -188,6 +188,8 @@ scripts/
 1. **Table name drift** — `db/schema.sql` has `predictions` and `tournament_predictions`; the live DB uses `user_regular_picks` and `user_bracket_picks`. Don't trust the schema file.
 2. **Slug case mismatch** — frontend slugs are UPPERCASE (`W_CF`); DB `match_id` values are lowercase (`w_conf_final`). Always use `ID_MAPPING`.
 3. **`triggerSave` counter pattern** — global save increments an integer; child components watch it with `useEffect`. The East conference save is delayed 500 ms to avoid concurrent upserts.
-4. **Bracket save: delete-then-insert** — `saveBracket()` does a full delete of the user's rows then re-inserts; no partial update.
+4. **Bracket save: atomic replace** — `saveBracket()` calls the `save_bracket_picks(p_league_id, p_picks)` RPC, which deletes and re-inserts the caller's picks in one transaction. Don't go back to separate delete/insert calls.
 5. **Standings script window** — `main.py` only runs between `START_HOUR_UTC` (0) and `END_HOUR_UTC` (10) UTC, and only until `END_DATE`. Update these in the workflow if needed for a new season.
 6. **ESPN team abbreviation mapping** — ESPN uses `WSH`, `GS`, `NY`, etc. The `TEAM_MAPPING` dict in `scripts/main.py` normalises them to the IDs used in `teams.ts`.
+7. **Locks are enforced in the DB** — the `enforce_pick_lock` trigger rejects pick writes after `regular_season_lock_at` (regular picks) / `playoff_lock_at` (bracket picks) for API users. Deletes after the lock are allowed only when cascaded from another trigger or by the league creator. Also note `wipe_bracket_on_rank_change`: any update to a user's `predicted_rank` deletes their bracket for that league.
+8. **`leaderboard` view is members-only** — it runs with owner rights (it reads `auth.users`), so it filters to leagues the caller (`auth.uid()`) belongs to; `anon` has no access.

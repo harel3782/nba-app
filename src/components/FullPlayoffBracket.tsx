@@ -71,21 +71,17 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 	async function saveBracket() {
 		if (isLocked) return;
 		setIsSaving(true);
-		const toInsert = Object.entries(picks)
+		const toSave = Object.entries(picks)
 			.filter(([_, p]) => p.team)
 			.map(([slug, p]) => ({
-				user_id: userId,
-				league_id: leagueId,
 				stage_slug: slug,
 				team_id: p.team!.id,
 				predicted_games: p.games
 			}));
 
 		try {
-			await supabase.from('user_bracket_picks').delete().eq('user_id', userId).eq('league_id', leagueId);
-			if (toInsert.length > 0) {
-				await supabase.from('user_bracket_picks').insert(toInsert);
-			}
+			const { error } = await supabase.rpc('save_bracket_picks', { p_league_id: leagueId, p_picks: toSave });
+			if (error) throw error;
 
 			setSaveSuccess(true);
 			if (onSaveSuccess) {
@@ -96,6 +92,7 @@ export function FullPlayoffBracket({ userId, leagueId, isLocked, triggerSave, on
 			setTimeout(() => setSaveSuccess(false), 3000);
 		} catch (e) {
 			console.error(e);
+			alert('Could not save your bracket: ' + (e as Error).message);
 		} finally {
 			setIsSaving(false);
 		}
