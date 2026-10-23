@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ScoringRulesModal } from './ScoringRulesModal';
 
 interface LeagueHeaderProps {
 	leagueDetails: any;
@@ -9,6 +10,7 @@ interface LeagueHeaderProps {
 
 export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, setIsSettingsOpen }: LeagueHeaderProps) {
 	const [copySuccess, setCopySuccess] = useState(false);
+	const [isRulesOpen, setIsRulesOpen] = useState(false);
 
 	const copyToClipboard = () => {
 		navigator.clipboard.writeText(currentLeagueId);
@@ -60,12 +62,24 @@ export function LeagueHeader({ leagueDetails, currentLeagueId, isLeagueAdmin, se
 			</div>
 			<div className="flex flex-col items-end gap-3">
 				{getWindowMessage()}
-				{isLeagueAdmin && (
-					<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2 font-bold">
-						⚙️ League Settings
+				<div className="flex flex-wrap justify-end gap-2">
+					<button onClick={() => setIsRulesOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2 font-bold">
+						📜 Rules
 					</button>
-				)}
+					{isLeagueAdmin && (
+						<button onClick={() => setIsSettingsOpen(true)} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all border border-white/10 flex items-center gap-2 font-bold">
+							⚙️ League Settings
+						</button>
+					)}
+				</div>
 			</div>
+			{isRulesOpen && (
+				<ScoringRulesModal
+					config={leagueDetails.scoring_config}
+					regularLockAt={leagueDetails.regular_season_lock_at}
+					onClose={() => setIsRulesOpen(false)}
+				/>
+			)}
 		</div>
 	);
 }
